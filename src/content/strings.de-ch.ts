@@ -10,7 +10,7 @@ export const uiStrings = {
   presenterHint:
     "Presenter: Pfeiltasten oder Leertaste. Home/Ende für Anfang/Ende. «Link kopieren» erzeugt einen Link fürs Publikum (ohne /present).",
   studentHint:
-    "Pfeiltasten oder Leertaste. «Link kopieren» teilt die aktuelle Folie mit anderen.",
+    "Du siehst dieselbe Folie wie der Vortrag, sobald jemand live präsentiert. Selbst blättern? Tippe danach LIVE, um wieder mitzugehen.",
   presenterViewBadge: "Presenter-Ansicht",
   presenterKeyLabel: "Presenter-Code",
   presenterKeyPlaceholder:
@@ -18,12 +18,15 @@ export const uiStrings = {
   presenterKeyStored: "Code wird für diese Sitzung gespeichert (nur in diesem Browser).",
   followPresenter: "Folien dem Vortragenden folgen",
   followHint:
-    "Benötigt Supabase (Realtime). Ohne Setup funktionieren Deep-Links mit ?s= weiterhin.",
-  synced: "Live-Sync",
+    "Optional: mit dem Publikum mitschauen (Realtime). Für das Publikum ist Live-Follow standardmässig aktiv.",
+  synced: "LIVE",
+  liveResumeCta: "LIVE",
+  liveResumeHint: "Zurück zur Live-Folie",
+  liveFollowingHint: "Synchron mit dem Vortrag",
   openWebsite: "Webseite öffnen",
-  reactionsTitle: "Reaktionen",
+  reactionsTitle: "Zeig kurz dein Feedback",
   reactionsHint:
-    "Tippe wie in Teams – alle sehen die Animation (Realtime).",
+    "Einfach antippen – alle sehen’s sofort live auf dem Bildschirm.",
   reactionHeart: "Herz",
   reactionFire: "Wow / stark",
   reactionClap: "Applaus",

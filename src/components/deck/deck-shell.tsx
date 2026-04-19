@@ -54,7 +54,7 @@ export function DeckShell({
     return clampIndex(n, maxIndex);
   }, [searchParams, maxIndex]);
 
-  const [followLive, setFollowLive] = useState(false);
+  const [followLive, setFollowLive] = useState(() => variant === "audience");
   const [presenterOpen, setPresenterOpen] = useState(false);
   const [presenterKeyInput, setPresenterKeyInput] = useState("");
   const [presenterSecret, setPresenterSecret] = useState("");
@@ -127,7 +127,7 @@ export function DeckShell({
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
         return;
       }
-      if (followLive) {
+      if (!isPresenterView && followLive) {
         setFollowLive(false);
       }
       if (e.key === "ArrowRight" || e.key === " " || e.key === "PageDown") {
@@ -146,7 +146,7 @@ export function DeckShell({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [followLive, go, index, maxIndex]);
+  }, [followLive, go, index, isPresenterView, maxIndex]);
 
   useEffect(() => {
     if (!supabaseReady) {
@@ -208,6 +208,30 @@ export function DeckShell({
       payload: { emoji, slideIndex: index },
     });
   }, [index]);
+
+  const fireReaction = useCallback(
+    (emoji: string) => {
+      try {
+        navigator.vibrate?.(12);
+      } catch {
+        /* ignore */
+      }
+      sendReaction(emoji);
+    },
+    [sendReaction],
+  );
+
+  const resumeLiveFollow = useCallback(() => {
+    setFollowLive(true);
+  }, []);
+
+  const navigateManual = useCallback(
+    (next: number) => {
+      if (!isPresenterView) setFollowLive(false);
+      go(next);
+    },
+    [go, isPresenterView],
+  );
 
   useEffect(() => {
     if (!followLive || !supabaseReady) {
@@ -312,6 +336,21 @@ export function DeckShell({
     <div className="flex min-h-screen flex-col bg-background text-foreground">
       <ReactionOverlay particles={reactionParticles} />
 
+      {!isPresenterView && supabaseReady && !followLive ? (
+        <div className="fixed bottom-5 left-1/2 z-30 flex -translate-x-1/2 flex-col items-center gap-1 md:hidden">
+          <button
+            type="button"
+            onClick={resumeLiveFollow}
+            className="rounded-full bg-teal-600 px-6 py-3 text-base font-bold uppercase tracking-wider text-white shadow-lg shadow-teal-600/35 active:scale-[0.98]"
+          >
+            {uiStrings.liveResumeCta}
+          </button>
+          <span className="max-w-[90vw] text-center text-[11px] text-foreground/70">
+            {uiStrings.liveResumeHint}
+          </span>
+        </div>
+      ) : null}
+
       <header className="sticky top-0 z-20 border-b border-foreground/10 bg-background/90 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-3 md:flex-row md:items-center md:justify-between">
           <div className="flex flex-wrap items-center gap-3 text-sm">
@@ -330,10 +369,30 @@ export function DeckShell({
                 style={{ width: `${((index + 1) / slides.length) * 100}%` }}
               />
             </div>
-            {followLive && supabaseReady ? (
-              <span className="rounded-full bg-teal-500/15 px-2 py-0.5 text-xs font-medium text-teal-800 dark:text-teal-200">
+            {!isPresenterView && supabaseReady && followLive ? (
+              <span
+                className="inline-flex items-center gap-1.5 rounded-full bg-teal-600/20 px-2.5 py-1 text-xs font-semibold text-teal-900 ring-1 ring-teal-500/30 dark:text-teal-100"
+                title={uiStrings.liveFollowingHint}
+              >
+                <span
+                  className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-teal-500"
+                  aria-hidden
+                />
                 {uiStrings.synced}
               </span>
+            ) : null}
+            {!isPresenterView && supabaseReady && !followLive ? (
+              <button
+                type="button"
+                onClick={resumeLiveFollow}
+                className="inline-flex items-center gap-2 rounded-full bg-teal-600 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-white shadow-md shadow-teal-600/25 transition hover:bg-teal-500 active:scale-[0.98]"
+                title={uiStrings.liveResumeHint}
+              >
+                {uiStrings.liveResumeCta}
+                <span className="hidden font-normal normal-case sm:inline">
+                  – {uiStrings.liveResumeHint}
+                </span>
+              </button>
             ) : null}
             {isPresenterView ? (
               <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-xs font-semibold text-amber-900 dark:text-amber-200">
@@ -345,7 +404,7 @@ export function DeckShell({
             <button
               type="button"
               className="rounded-full border border-foreground/15 px-3 py-1.5 text-sm font-medium transition hover:bg-foreground/5"
-              onClick={() => go(index - 1)}
+              onClick={() => navigateManual(index - 1)}
               disabled={index === 0}
             >
               {uiStrings.prev}
@@ -353,7 +412,7 @@ export function DeckShell({
             <button
               type="button"
               className="rounded-full border border-foreground/15 px-3 py-1.5 text-sm font-medium transition hover:bg-foreground/5"
-              onClick={() => go(index + 1)}
+              onClick={() => navigateManual(index + 1)}
               disabled={index === maxIndex}
             >
               {uiStrings.next}
@@ -369,7 +428,9 @@ export function DeckShell({
         </div>
       </header>
 
-      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 py-10 md:px-8 md:py-14">
+      <main
+        className={`mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 py-10 md:px-8 md:py-14 ${!isPresenterView && supabaseReady && !followLive ? "pb-28 md:pb-14" : ""}`}
+      >
         <SlideRenderer slide={slide} />
       </main>
 
@@ -380,11 +441,15 @@ export function DeckShell({
           </p>
 
           {supabaseReady ? (
-            <div className="rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-4">
-              <p className="text-sm font-medium">{uiStrings.reactionsTitle}</p>
-              <p className="mt-1 text-xs text-foreground/65">{uiStrings.reactionsHint}</p>
+            <div className="rounded-2xl border border-teal-500/20 bg-gradient-to-b from-teal-500/5 to-transparent p-4 sm:p-5">
+              <p className="text-base font-semibold text-foreground sm:text-lg">
+                {uiStrings.reactionsTitle}
+              </p>
+              <p className="mt-1.5 text-sm leading-snug text-foreground/70">
+                {uiStrings.reactionsHint}
+              </p>
               <div
-                className="mt-3 flex flex-wrap gap-2"
+                className="mt-4 grid grid-cols-5 gap-2 sm:gap-3"
                 role="group"
                 aria-label={uiStrings.reactionsTitle}
               >
@@ -392,39 +457,37 @@ export function DeckShell({
                   <button
                     key={emoji}
                     type="button"
-                    className="flex h-12 min-w-12 items-center justify-center rounded-xl border border-foreground/15 bg-background text-2xl transition hover:scale-105 hover:border-teal-500/50 hover:bg-teal-500/10 active:scale-95"
+                    className="flex aspect-square min-h-[3.25rem] items-center justify-center rounded-2xl border-2 border-foreground/10 bg-background text-[1.65rem] shadow-sm transition hover:scale-[1.06] hover:border-teal-400/60 hover:bg-teal-500/10 hover:shadow-md active:scale-95 sm:min-h-0 sm:text-3xl"
                     aria-label={label}
                     title={label}
-                    onClick={() => sendReaction(emoji)}
+                    onClick={() => fireReaction(emoji)}
                   >
-                    {emoji}
+                    <span className="pointer-events-none select-none leading-none">{emoji}</span>
                   </button>
                 ))}
               </div>
             </div>
           ) : null}
 
-          <div
-            className={`flex flex-col gap-4 rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-4 ${isPresenterView ? "md:flex-row md:items-start md:justify-between" : ""}`}
-          >
-            <label className="flex max-w-md flex-col gap-2 text-sm">
-              <span className="font-medium">{uiStrings.followPresenter}</span>
-              <span className="text-foreground/65">{uiStrings.followHint}</span>
-              <div className="flex cursor-pointer items-center gap-2 pt-1">
-                <input
-                  type="checkbox"
-                  checked={followLive}
-                  onChange={(e) => setFollowLive(e.target.checked)}
-                  disabled={!supabaseReady}
-                  className="h-4 w-4 rounded border-foreground/30"
-                />
-                <span className="text-foreground/80">
-                  {supabaseReady ? "Live-Sync aktivieren" : "Supabase nicht konfiguriert"}
-                </span>
-              </div>
-            </label>
+          {isPresenterView ? (
+            <div className="flex flex-col gap-4 rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-4 md:flex-row md:items-start md:justify-between">
+              <label className="flex max-w-md flex-col gap-2 text-sm">
+                <span className="font-medium">{uiStrings.followPresenter}</span>
+                <span className="text-foreground/65">{uiStrings.followHint}</span>
+                <div className="flex cursor-pointer items-center gap-2 pt-1">
+                  <input
+                    type="checkbox"
+                    checked={followLive}
+                    onChange={(e) => setFollowLive(e.target.checked)}
+                    disabled={!supabaseReady}
+                    className="h-4 w-4 rounded border-foreground/30"
+                  />
+                  <span className="text-foreground/80">
+                    {supabaseReady ? "Live-Sync aktivieren" : "Supabase nicht konfiguriert"}
+                  </span>
+                </div>
+              </label>
 
-            {isPresenterView ? (
               <div className="flex min-w-[260px] flex-col gap-2">
                 <button
                   type="button"
@@ -457,8 +520,8 @@ export function DeckShell({
                   </div>
                 ) : null}
               </div>
-            ) : null}
-          </div>
+            </div>
+          ) : null}
         </div>
       </footer>
     </div>
