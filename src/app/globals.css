@@ -24,6 +24,23 @@ body {
   color: var(--foreground);
 }
 
+button:not(:disabled),
+a[href],
+label:has(input[type="checkbox"]),
+label:has(input[type="radio"]),
+[role="button"]:not([aria-disabled="true"]) {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+input[type="checkbox"]:disabled,
+input[type="radio"]:disabled {
+  cursor: not-allowed;
+}
+
 ::selection {
   background: rgb(20 184 166 / 0.35);
 }

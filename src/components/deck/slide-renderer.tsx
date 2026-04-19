@@ -28,7 +28,7 @@ export function SlideRenderer({ slide }: { slide: Slide }) {
               </p>
             ) : null}
             <a
-              className="mt-2 inline-flex w-fit items-center gap-2 rounded-full border border-foreground/15 px-4 py-2 text-sm font-medium text-teal-700 transition hover:bg-foreground/5 dark:text-teal-300"
+              className="mt-2 inline-flex w-fit cursor-pointer items-center gap-2 rounded-full border border-foreground/15 px-4 py-2 text-sm font-medium text-teal-700 transition hover:bg-foreground/5 dark:text-teal-300"
               href="https://www.duby.io"
               target="_blank"
               rel="noopener noreferrer"

@@ -29,7 +29,14 @@ function clampIndex(i: number, max: number) {
   return Math.max(0, Math.min(max, i));
 }
 
-export function DeckShell({ slides }: { slides: Slides }) {
+export function DeckShell({
+  slides,
+  variant = "audience",
+}: {
+  slides: Slides;
+  variant?: "audience" | "presenter";
+}) {
+  const isPresenterView = variant === "presenter";
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -286,6 +293,9 @@ export function DeckShell({ slides }: { slides: Slides }) {
 
   const copySlideLink = async () => {
     const url = new URL(window.location.href);
+    if (isPresenterView) {
+      url.pathname = "/";
+    }
     url.searchParams.set("s", String(index));
     try {
       await navigator.clipboard.writeText(url.toString());
@@ -325,6 +335,11 @@ export function DeckShell({ slides }: { slides: Slides }) {
                 {uiStrings.synced}
               </span>
             ) : null}
+            {isPresenterView ? (
+              <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-xs font-semibold text-amber-900 dark:text-amber-200">
+                {uiStrings.presenterViewBadge}
+              </span>
+            ) : null}
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <button
@@ -360,7 +375,9 @@ export function DeckShell({ slides }: { slides: Slides }) {
 
       <footer className="border-t border-foreground/10 bg-background/95">
         <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-6 md:px-8">
-          <p className="text-sm text-foreground/70">{uiStrings.presenterHint}</p>
+          <p className="text-sm text-foreground/70">
+            {isPresenterView ? uiStrings.presenterHint : uiStrings.studentHint}
+          </p>
 
           {supabaseReady ? (
             <div className="rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-4">
@@ -387,11 +404,13 @@ export function DeckShell({ slides }: { slides: Slides }) {
             </div>
           ) : null}
 
-          <div className="flex flex-col gap-4 rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-4 md:flex-row md:items-start md:justify-between">
+          <div
+            className={`flex flex-col gap-4 rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-4 ${isPresenterView ? "md:flex-row md:items-start md:justify-between" : ""}`}
+          >
             <label className="flex max-w-md flex-col gap-2 text-sm">
               <span className="font-medium">{uiStrings.followPresenter}</span>
               <span className="text-foreground/65">{uiStrings.followHint}</span>
-              <div className="flex items-center gap-2 pt-1">
+              <div className="flex cursor-pointer items-center gap-2 pt-1">
                 <input
                   type="checkbox"
                   checked={followLive}
@@ -405,38 +424,40 @@ export function DeckShell({ slides }: { slides: Slides }) {
               </div>
             </label>
 
-            <div className="flex min-w-[260px] flex-col gap-2">
-              <button
-                type="button"
-                className="text-left text-sm font-medium text-teal-700 underline-offset-4 hover:underline dark:text-teal-300"
-                onClick={togglePresenterPanel}
-              >
-                {presenterOpen ? "Presenter-Modus ausblenden" : uiStrings.presenterMode}
-              </button>
-              {presenterOpen ? (
-                <div className="flex flex-col gap-2 rounded-xl border border-foreground/10 bg-background p-3">
-                  <label className="flex flex-col gap-1 text-xs">
-                    <span>{uiStrings.presenterKeyLabel}</span>
-                    <input
-                      type="password"
-                      autoComplete="off"
-                      className="rounded-lg border border-foreground/15 bg-background px-3 py-2 text-sm"
-                      placeholder={uiStrings.presenterKeyPlaceholder}
-                      value={presenterKeyInput}
-                      onChange={(e) => setPresenterKeyInput(e.target.value)}
-                    />
-                  </label>
-                  <p className="text-xs text-foreground/60">{uiStrings.presenterKeyStored}</p>
-                  <button
-                    type="button"
-                    className="rounded-lg bg-teal-600 px-3 py-2 text-sm font-medium text-white hover:bg-teal-700"
-                    onClick={persistPresenterKey}
-                  >
-                    Code für diese Sitzung speichern
-                  </button>
-                </div>
-              ) : null}
-            </div>
+            {isPresenterView ? (
+              <div className="flex min-w-[260px] flex-col gap-2">
+                <button
+                  type="button"
+                  className="text-left text-sm font-medium text-teal-700 underline-offset-4 hover:underline dark:text-teal-300"
+                  onClick={togglePresenterPanel}
+                >
+                  {presenterOpen ? "Presenter-Modus ausblenden" : uiStrings.presenterMode}
+                </button>
+                {presenterOpen ? (
+                  <div className="flex flex-col gap-2 rounded-xl border border-foreground/10 bg-background p-3">
+                    <label className="flex flex-col gap-1 text-xs">
+                      <span>{uiStrings.presenterKeyLabel}</span>
+                      <input
+                        type="password"
+                        autoComplete="off"
+                        className="cursor-text rounded-lg border border-foreground/15 bg-background px-3 py-2 text-sm"
+                        placeholder={uiStrings.presenterKeyPlaceholder}
+                        value={presenterKeyInput}
+                        onChange={(e) => setPresenterKeyInput(e.target.value)}
+                      />
+                    </label>
+                    <p className="text-xs text-foreground/60">{uiStrings.presenterKeyStored}</p>
+                    <button
+                      type="button"
+                      className="rounded-lg bg-teal-600 px-3 py-2 text-sm font-medium text-white hover:bg-teal-700"
+                      onClick={persistPresenterKey}
+                    >
+                      Code für diese Sitzung speichern
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
           </div>
         </div>
       </footer>

@@ -8,7 +8,10 @@ export const uiStrings = {
   copied: "Kopiert",
   presenterMode: "Presenter-Modus",
   presenterHint:
-    "Pfeiltasten oder Leertaste. Home/Ende für Anfang/Ende. «Link kopieren» für Studierende.",
+    "Presenter: Pfeiltasten oder Leertaste. Home/Ende für Anfang/Ende. «Link kopieren» erzeugt einen Link fürs Publikum (ohne /present).",
+  studentHint:
+    "Pfeiltasten oder Leertaste. «Link kopieren» teilt die aktuelle Folie mit anderen.",
+  presenterViewBadge: "Presenter-Ansicht",
   presenterKeyLabel: "Presenter-Code",
   presenterKeyPlaceholder:
     "Vollständigen Wert von PRESENTER_SECRET einfügen (.env.local oder Vercel)",
