@@ -4,6 +4,10 @@ export interface ReactionParticle {
   id: string;
   emoji: string;
   x: number;
+  delayMs?: number;
+  sizeRem?: number;
+  durationMs?: number;
+  mode?: "rise" | "fall";
 }
 
 export function ReactionOverlay({ particles }: { particles: ReactionParticle[] }) {
@@ -14,19 +18,26 @@ export function ReactionOverlay({ particles }: { particles: ReactionParticle[] }
       className="pointer-events-none fixed inset-0 z-[100] overflow-hidden"
       aria-hidden
     >
-      {particles.map((p) => (
-        <span
-          key={p.id}
-          className="deck-reaction-particle absolute bottom-[10%] select-none text-5xl drop-shadow-[0_4px_12px_rgba(0,0,0,0.35)] md:text-6xl"
-          style={{
-            left: `${p.x}%`,
-            animation:
-              "deck-reaction-rise 3.4s cubic-bezier(0.22, 1, 0.36, 1) forwards",
-          }}
-        >
-          {p.emoji}
-        </span>
-      ))}
+      {particles.map((p) => {
+        const delay = p.delayMs ?? 0;
+        const durationSec = ((p.durationMs ?? 3400) / 1000).toFixed(2);
+        const size = p.sizeRem ?? 3;
+        const anim =
+          p.mode === "fall" ? "deck-reaction-fall" : "deck-reaction-rise";
+        return (
+          <span
+            key={p.id}
+            className={`deck-reaction-particle absolute select-none drop-shadow-[0_4px_12px_rgba(0,0,0,0.35)] ${p.mode === "fall" ? "top-0" : "bottom-[10%]"}`}
+            style={{
+              left: `${p.x}%`,
+              fontSize: `${size}rem`,
+              animation: `${anim} ${durationSec}s cubic-bezier(0.22, 1, 0.36, 1) ${delay}ms forwards`,
+            }}
+          >
+            {p.emoji}
+          </span>
+        );
+      })}
     </div>
   );
 }

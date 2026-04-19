@@ -9,13 +9,18 @@ import {
   ReactionOverlay,
   type ReactionParticle,
 } from "@/components/deck/reaction-overlay";
+import {
+  buildEmojiBurst,
+  fireConfettiForIntensity,
+  recordBurstIntensity,
+} from "@/lib/reactions/reaction-burst";
 import { uiStrings } from "@/content/strings.de-ch";
 
 const PRESENTER_STORAGE_KEY = "fhgr-deck-presenter-secret";
 const POLL_MS = 4000;
-const REACTION_COOLDOWN_MS = 380;
-const REACTION_TTL_MS = 4000;
-const MAX_REACTION_PARTICLES = 48;
+const REACTION_COOLDOWN_MS = 260;
+const REACTION_CLEANUP_MS = 5600;
+const MAX_REACTION_PARTICLES = 200;
 
 const REACTION_BUTTONS = [
   { emoji: "❤️", label: uiStrings.reactionHeart },
@@ -23,6 +28,19 @@ const REACTION_BUTTONS = [
   { emoji: "👏", label: uiStrings.reactionClap },
   { emoji: "😮", label: uiStrings.reactionWow },
   { emoji: "🎉", label: uiStrings.reactionParty },
+  { emoji: "💀", label: uiStrings.reactionSkull },
+  { emoji: "😭", label: uiStrings.reactionSob },
+  { emoji: "🤡", label: uiStrings.reactionClown },
+  { emoji: "✨", label: uiStrings.reactionSparkle },
+  { emoji: "💯", label: uiStrings.reactionHundred },
+  { emoji: "🐐", label: uiStrings.reactionGoat },
+  { emoji: "🫡", label: uiStrings.reactionSalute },
+  { emoji: "🧢", label: uiStrings.reactionCap },
+  { emoji: "🤝", label: uiStrings.reactionHandshake },
+  { emoji: "🍿", label: uiStrings.reactionPopcorn },
+  { emoji: "👀", label: uiStrings.reactionEyes },
+  { emoji: "🫶", label: uiStrings.reactionHeartHands },
+  { emoji: "🤯", label: uiStrings.reactionMindBlown },
 ] as const;
 
 function clampIndex(i: number, max: number) {
@@ -68,6 +86,7 @@ export function DeckShell({
   const reactionChannelRef = useRef<RealtimeChannel | null>(null);
   const reactionChannelReadyRef = useRef(false);
   const lastReactionSendRef = useRef(0);
+  const reactionBurstWindowRef = useRef<number[]>([]);
 
   const replaceUrl = useCallback(
     (next: number) => {
@@ -166,18 +185,16 @@ export function DeckShell({
         ({ payload }: { payload?: { emoji?: string } }) => {
           const emoji = payload?.emoji;
           if (!emoji || typeof emoji !== "string") return;
-          const id = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-          const x = 8 + Math.random() * 84;
-          setReactionParticles((prev) => {
-            const next = [...prev, { id, emoji, x }];
-            if (next.length > MAX_REACTION_PARTICLES) {
-              return next.slice(-MAX_REACTION_PARTICLES);
-            }
-            return next;
-          });
+          const intensity = recordBurstIntensity(reactionBurstWindowRef);
+          const batch = buildEmojiBurst(emoji, intensity);
+          setReactionParticles((prev) =>
+            [...prev, ...batch].slice(-MAX_REACTION_PARTICLES),
+          );
+          void fireConfettiForIntensity(intensity);
           window.setTimeout(() => {
-            setReactionParticles((prev) => prev.filter((p) => p.id !== id));
-          }, REACTION_TTL_MS);
+            const ids = new Set(batch.map((b) => b.id));
+            setReactionParticles((prev) => prev.filter((p) => !ids.has(p.id)));
+          }, REACTION_CLEANUP_MS);
         },
       )
       .subscribe((status) => {
@@ -449,7 +466,7 @@ export function DeckShell({
                 {uiStrings.reactionsHint}
               </p>
               <div
-                className="mt-4 grid grid-cols-5 gap-2 sm:gap-3"
+                className="mt-4 grid grid-cols-5 gap-2 sm:grid-cols-6 sm:gap-3"
                 role="group"
                 aria-label={uiStrings.reactionsTitle}
               >
@@ -457,7 +474,7 @@ export function DeckShell({
                   <button
                     key={emoji}
                     type="button"
-                    className="flex aspect-square min-h-[3.25rem] items-center justify-center rounded-2xl border-2 border-foreground/10 bg-background text-[1.65rem] shadow-sm transition hover:scale-[1.06] hover:border-teal-400/60 hover:bg-teal-500/10 hover:shadow-md active:scale-95 sm:min-h-0 sm:text-3xl"
+                    className="flex aspect-square min-h-[3.1rem] items-center justify-center rounded-2xl border-2 border-foreground/10 bg-background text-[1.45rem] shadow-sm transition hover:scale-[1.06] hover:border-teal-400/60 hover:bg-teal-500/10 hover:shadow-md active:scale-95 sm:min-h-[3.25rem] sm:text-2xl md:text-3xl"
                     aria-label={label}
                     title={label}
                     onClick={() => fireReaction(emoji)}

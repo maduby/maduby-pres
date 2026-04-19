@@ -64,6 +64,25 @@ input[type="radio"]:disabled {
   }
 }
 
+@keyframes deck-reaction-fall {
+  0% {
+    transform: translate(-50%, 0) scale(0.45) rotate(12deg);
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1.08) rotate(-6deg);
+  }
+  78% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, 115vh) scale(0.9) rotate(8deg);
+    opacity: 0;
+  }
+}
+
 .deck-reaction-particle {
   will-change: transform, opacity;
+  animation-iteration-count: 1;
 }
