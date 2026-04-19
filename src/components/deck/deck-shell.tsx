@@ -5,10 +5,25 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { createClient, type RealtimeChannel } from "@supabase/supabase-js";
 import type { Slide, Slides } from "@/lib/deck/schema";
 import { SlideRenderer } from "@/components/deck/slide-renderer";
+import {
+  ReactionOverlay,
+  type ReactionParticle,
+} from "@/components/deck/reaction-overlay";
 import { uiStrings } from "@/content/strings.de-ch";
 
 const PRESENTER_STORAGE_KEY = "fhgr-deck-presenter-secret";
 const POLL_MS = 4000;
+const REACTION_COOLDOWN_MS = 380;
+const REACTION_TTL_MS = 4000;
+const MAX_REACTION_PARTICLES = 48;
+
+const REACTION_BUTTONS = [
+  { emoji: "❤️", label: uiStrings.reactionHeart },
+  { emoji: "🔥", label: uiStrings.reactionFire },
+  { emoji: "👏", label: uiStrings.reactionClap },
+  { emoji: "😮", label: uiStrings.reactionWow },
+  { emoji: "🎉", label: uiStrings.reactionParty },
+] as const;
 
 function clampIndex(i: number, max: number) {
   return Math.max(0, Math.min(max, i));
@@ -37,9 +52,15 @@ export function DeckShell({ slides }: { slides: Slides }) {
   const [presenterKeyInput, setPresenterKeyInput] = useState("");
   const [presenterSecret, setPresenterSecret] = useState("");
   const [copyDone, setCopyDone] = useState(false);
+  const [reactionParticles, setReactionParticles] = useState<ReactionParticle[]>(
+    [],
+  );
 
   const channelRef = useRef<RealtimeChannel | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const reactionChannelRef = useRef<RealtimeChannel | null>(null);
+  const reactionChannelReadyRef = useRef(false);
+  const lastReactionSendRef = useRef(0);
 
   const replaceUrl = useCallback(
     (next: number) => {
@@ -119,6 +140,67 @@ export function DeckShell({ slides }: { slides: Slides }) {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [followLive, go, index, maxIndex]);
+
+  useEffect(() => {
+    if (!supabaseReady) {
+      reactionChannelReadyRef.current = false;
+      reactionChannelRef.current = null;
+      return;
+    }
+
+    const supabase = createClient(supabaseUrl!, supabaseAnon!);
+    const channel = supabase
+      .channel(`deck-reactions:${sessionId}`, {
+        config: { broadcast: { self: true } },
+      })
+      .on(
+        "broadcast",
+        { event: "reaction" },
+        ({ payload }: { payload?: { emoji?: string } }) => {
+          const emoji = payload?.emoji;
+          if (!emoji || typeof emoji !== "string") return;
+          const id = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+          const x = 8 + Math.random() * 84;
+          setReactionParticles((prev) => {
+            const next = [...prev, { id, emoji, x }];
+            if (next.length > MAX_REACTION_PARTICLES) {
+              return next.slice(-MAX_REACTION_PARTICLES);
+            }
+            return next;
+          });
+          window.setTimeout(() => {
+            setReactionParticles((prev) => prev.filter((p) => p.id !== id));
+          }, REACTION_TTL_MS);
+        },
+      )
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          reactionChannelReadyRef.current = true;
+          reactionChannelRef.current = channel;
+        }
+        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+          reactionChannelReadyRef.current = false;
+        }
+      });
+
+    return () => {
+      reactionChannelReadyRef.current = false;
+      reactionChannelRef.current = null;
+      void channel.unsubscribe();
+    };
+  }, [sessionId, supabaseAnon, supabaseReady, supabaseUrl]);
+
+  const sendReaction = useCallback((emoji: string) => {
+    if (!reactionChannelReadyRef.current || !reactionChannelRef.current) return;
+    const now = Date.now();
+    if (now - lastReactionSendRef.current < REACTION_COOLDOWN_MS) return;
+    lastReactionSendRef.current = now;
+    void reactionChannelRef.current.send({
+      type: "broadcast",
+      event: "reaction",
+      payload: { emoji, slideIndex: index },
+    });
+  }, [index]);
 
   useEffect(() => {
     if (!followLive || !supabaseReady) {
@@ -218,6 +300,8 @@ export function DeckShell({ slides }: { slides: Slides }) {
 
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
+      <ReactionOverlay particles={reactionParticles} />
+
       <header className="sticky top-0 z-20 border-b border-foreground/10 bg-background/90 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-3 md:flex-row md:items-center md:justify-between">
           <div className="flex flex-wrap items-center gap-3 text-sm">
@@ -277,6 +361,31 @@ export function DeckShell({ slides }: { slides: Slides }) {
       <footer className="border-t border-foreground/10 bg-background/95">
         <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-6 md:px-8">
           <p className="text-sm text-foreground/70">{uiStrings.presenterHint}</p>
+
+          {supabaseReady ? (
+            <div className="rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-4">
+              <p className="text-sm font-medium">{uiStrings.reactionsTitle}</p>
+              <p className="mt-1 text-xs text-foreground/65">{uiStrings.reactionsHint}</p>
+              <div
+                className="mt-3 flex flex-wrap gap-2"
+                role="group"
+                aria-label={uiStrings.reactionsTitle}
+              >
+                {REACTION_BUTTONS.map(({ emoji, label }) => (
+                  <button
+                    key={emoji}
+                    type="button"
+                    className="flex h-12 min-w-12 items-center justify-center rounded-xl border border-foreground/15 bg-background text-2xl transition hover:scale-105 hover:border-teal-500/50 hover:bg-teal-500/10 active:scale-95"
+                    aria-label={label}
+                    title={label}
+                    onClick={() => sendReaction(emoji)}
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
 
           <div className="flex flex-col gap-4 rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-4 md:flex-row md:items-start md:justify-between">
             <label className="flex max-w-md flex-col gap-2 text-sm">

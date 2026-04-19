@@ -10,11 +10,20 @@ export const uiStrings = {
   presenterHint:
     "Pfeiltasten oder Leertaste. Home/Ende für Anfang/Ende. «Link kopieren» für Studierende.",
   presenterKeyLabel: "Presenter-Code",
-  presenterKeyPlaceholder: "Code aus der Umgebungsvariable PRESENTER_SECRET",
+  presenterKeyPlaceholder:
+    "Vollständigen Wert von PRESENTER_SECRET einfügen (.env.local oder Vercel)",
   presenterKeyStored: "Code wird für diese Sitzung gespeichert (nur in diesem Browser).",
   followPresenter: "Folien dem Vortragenden folgen",
   followHint:
     "Benötigt Supabase (Realtime). Ohne Setup funktionieren Deep-Links mit ?s= weiterhin.",
   synced: "Live-Sync",
   openWebsite: "Webseite öffnen",
+  reactionsTitle: "Reaktionen",
+  reactionsHint:
+    "Tippe wie in Teams – alle sehen die Animation (Realtime).",
+  reactionHeart: "Herz",
+  reactionFire: "Wow / stark",
+  reactionClap: "Applaus",
+  reactionWow: "Überrascht",
+  reactionParty: "Freude",
 } as const;

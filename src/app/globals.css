@@ -27,3 +27,26 @@ body {
 ::selection {
   background: rgb(20 184 166 / 0.35);
 }
+
+/* Floating emoji reactions (Supabase broadcast) */
+@keyframes deck-reaction-rise {
+  0% {
+    transform: translate(-50%, 0) scale(0.5) rotate(-10deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1.12) rotate(6deg);
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -115vh) scale(0.95) rotate(-4deg);
+    opacity: 0;
+  }
+}
+
+.deck-reaction-particle {
+  will-change: transform, opacity;
+}
