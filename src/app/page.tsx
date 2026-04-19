@@ -4,8 +4,10 @@ import { slides } from "@/content/slides.de-ch";
 
 function DeckFallback() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-6 text-center text-foreground/80">
-      Präsentation wird geladen …
+    <div className="flex min-h-screen items-center justify-center bg-background px-6">
+      <p className="border-[3px] border-foreground bg-background px-6 py-4 font-heading text-lg font-bold text-foreground brutal-shadow">
+        Präsentation wird geladen …
+      </p>
     </div>
   );
 }

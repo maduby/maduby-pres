@@ -1,27 +1,73 @@
 @import "tailwindcss";
 
+/* Inspired by brutalist / neo-brutalist UI patterns (e.g. precast brutalist): thick borders, hard shadows, high contrast. */
 :root {
-  --background: #fafafa;
-  --foreground: #0f172a;
+  --background: #f2f0e8;
+  --foreground: #0c0c0c;
+  --brutal-accent: #0f766e;
+  --brutal-accent-fg: #ecfeff;
+  --brutal-hot: #be123c;
+  --brutal-warn: #ca8a04;
+  --brutal-border: 3px solid var(--foreground);
+  --brutal-shadow: 5px 5px 0 0 var(--foreground);
+  --brutal-shadow-sm: 3px 3px 0 0 var(--foreground);
+  --brutal-shadow-press: 2px 2px 0 0 var(--foreground);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-brutal-accent: var(--brutal-accent);
+  --color-brutal-accent-fg: var(--brutal-accent-fg);
+  --color-brutal-hot: var(--brutal-hot);
+  --color-brutal-warn: var(--brutal-warn);
+  --font-sans: var(--font-nunito-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-halant), ui-serif, Georgia, "Times New Roman", serif;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #050816;
-    --foreground: #e2e8f0;
+    --background: #0a0a0b;
+    --foreground: #f4f4ef;
+    --brutal-accent: #2dd4bf;
+    --brutal-accent-fg: #042f2e;
+    --brutal-hot: #fb7185;
+    --brutal-warn: #facc15;
   }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
+}
+
+/* Brutalist primitives */
+.brutal-border {
+  border: var(--brutal-border);
+}
+
+.brutal-shadow {
+  box-shadow: var(--brutal-shadow);
+}
+
+.brutal-shadow-sm {
+  box-shadow: var(--brutal-shadow-sm);
+}
+
+.brutal-pressable {
+  transition:
+    transform 0.08s ease,
+    box-shadow 0.08s ease;
+}
+
+.brutal-pressable:hover:not(:disabled) {
+  transform: translate(1px, 1px);
+  box-shadow: var(--brutal-shadow-press);
+}
+
+.brutal-pressable:active:not(:disabled) {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 0 var(--foreground);
 }
 
 button:not(:disabled),
@@ -42,7 +88,7 @@ input[type="radio"]:disabled {
 }
 
 ::selection {
-  background: rgb(20 184 166 / 0.35);
+  background: color-mix(in srgb, var(--brutal-accent) 40%, transparent);
 }
 
 /* Floating emoji reactions (Supabase broadcast) */

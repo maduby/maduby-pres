@@ -4,7 +4,7 @@ import { uiStrings } from "@/content/strings.de-ch";
 
 function Prose({ children }: { children: React.ReactNode }) {
   return (
-    <div className="max-w-3xl space-y-4 text-lg leading-relaxed text-foreground/90 md:text-xl">
+    <div className="max-w-3xl space-y-5 text-lg font-semibold leading-relaxed text-foreground/90 md:text-xl md:leading-relaxed">
       {children}
     </div>
   );
@@ -14,21 +14,21 @@ export function SlideRenderer({ slide }: { slide: Slide }) {
   switch (slide.kind) {
     case "title":
       return (
-        <div className="flex min-h-[70vh] flex-col items-center justify-center gap-8 text-center md:flex-row md:text-left">
-          <div className="flex max-w-xl flex-col gap-4">
-            <p className="text-sm font-medium uppercase tracking-widest text-teal-600 dark:text-teal-400">
+        <div className="flex min-h-[70vh] flex-col items-center justify-center gap-10 text-center md:flex-row md:text-left">
+          <div className="flex max-w-xl flex-col gap-5">
+            <p className="inline-flex w-fit items-center border-2 border-foreground bg-brutal-accent px-3 py-1 font-sans text-xs font-extrabold uppercase tracking-[0.2em] text-brutal-accent-fg brutal-shadow-sm">
               FHGR · Zukunft 1
             </p>
-            <h1 className="text-4xl font-semibold tracking-tight text-balance md:text-5xl">
+            <h1 className="font-heading text-4xl font-bold leading-[1.08] tracking-tight text-balance md:text-6xl">
               {slide.title}
             </h1>
             {slide.subline ? (
-              <p className="text-lg text-foreground/80 text-pretty md:text-2xl">
+              <p className="font-sans text-lg font-semibold leading-snug text-pretty text-foreground/85 md:text-2xl md:leading-snug">
                 {slide.subline}
               </p>
             ) : null}
             <a
-              className="mt-2 inline-flex w-fit cursor-pointer items-center gap-2 rounded-full border border-foreground/15 px-4 py-2 text-sm font-medium text-teal-700 transition hover:bg-foreground/5 dark:text-teal-300"
+              className="brutal-pressable mt-2 inline-flex w-fit items-center gap-2 border-[3px] border-foreground bg-brutal-accent px-5 py-2.5 font-sans text-sm font-extrabold uppercase tracking-wide text-brutal-accent-fg brutal-shadow"
               href="https://www.duby.io"
               target="_blank"
               rel="noopener noreferrer"
@@ -37,7 +37,7 @@ export function SlideRenderer({ slide }: { slide: Slide }) {
             </a>
           </div>
           {slide.image ? (
-            <div className="relative aspect-[4/3] w-full max-w-lg overflow-hidden rounded-2xl border border-foreground/10 shadow-lg shadow-black/10">
+            <div className="relative aspect-[4/3] w-full max-w-lg overflow-hidden border-[3px] border-foreground bg-foreground brutal-shadow">
               <Image
                 src={slide.image.src}
                 alt={slide.image.alt}
@@ -54,13 +54,13 @@ export function SlideRenderer({ slide }: { slide: Slide }) {
 
     case "section":
       return (
-        <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3 text-center">
+        <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 text-center">
           {slide.kicker ? (
-            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-teal-600 dark:text-teal-400">
+            <p className="font-sans text-xs font-extrabold uppercase tracking-[0.28em] text-brutal-hot">
               {slide.kicker}
             </p>
           ) : null}
-          <h2 className="max-w-4xl text-4xl font-semibold tracking-tight text-balance md:text-5xl">
+          <h2 className="font-heading max-w-4xl text-4xl font-bold leading-[1.1] tracking-tight text-balance md:text-6xl">
             {slide.title}
           </h2>
         </div>
@@ -68,9 +68,9 @@ export function SlideRenderer({ slide }: { slide: Slide }) {
 
     case "text":
       return (
-        <div className="flex min-h-[60vh] flex-col justify-center gap-6">
+        <div className="flex min-h-[60vh] flex-col justify-center gap-8">
           {slide.heading ? (
-            <h2 className="text-3xl font-semibold tracking-tight text-balance md:text-4xl">
+            <h2 className="font-heading text-3xl font-bold leading-tight tracking-tight text-balance md:text-5xl">
               {slide.heading}
             </h2>
           ) : null}
@@ -92,7 +92,7 @@ export function SlideRenderer({ slide }: { slide: Slide }) {
       return (
         <div className="flex min-h-[60vh] flex-col justify-center gap-6">
           <div
-            className={`relative w-full overflow-hidden rounded-2xl border border-foreground/10 ${aspect}`}
+            className={`relative w-full overflow-hidden border-[3px] border-foreground bg-foreground brutal-shadow ${aspect}`}
           >
             <Image
               src={slide.src}
@@ -103,10 +103,12 @@ export function SlideRenderer({ slide }: { slide: Slide }) {
             />
           </div>
           {slide.caption ? (
-            <p className="text-base text-foreground/80">{slide.caption}</p>
+            <p className="font-sans text-base font-semibold text-foreground/85">{slide.caption}</p>
           ) : null}
           {slide.credit ? (
-            <p className="text-sm text-foreground/55">{slide.credit}</p>
+            <p className="font-sans text-sm font-bold uppercase tracking-wide text-foreground/55">
+              {slide.credit}
+            </p>
           ) : null}
         </div>
       );
@@ -117,7 +119,7 @@ export function SlideRenderer({ slide }: { slide: Slide }) {
       return (
         <div className="flex min-h-[60vh] flex-col justify-center gap-4">
           <div
-            className={`relative w-full overflow-hidden rounded-2xl border border-foreground/10 bg-black/5 ${aspect}`}
+            className={`relative w-full overflow-hidden border-[3px] border-foreground bg-foreground brutal-shadow ${aspect}`}
           >
             <iframe
               title={slide.title}
@@ -129,7 +131,7 @@ export function SlideRenderer({ slide }: { slide: Slide }) {
             />
           </div>
           {slide.caption ? (
-            <p className="text-sm text-foreground/70">{slide.caption}</p>
+            <p className="font-sans text-sm font-semibold text-foreground/80">{slide.caption}</p>
           ) : null}
         </div>
       );
@@ -137,21 +139,23 @@ export function SlideRenderer({ slide }: { slide: Slide }) {
 
     case "timeline":
       return (
-        <div className="flex min-h-[60vh] flex-col justify-center gap-8">
+        <div className="flex min-h-[60vh] flex-col justify-center gap-10">
           {slide.heading ? (
-            <h2 className="text-3xl font-semibold tracking-tight md:text-4xl">
+            <h2 className="font-heading text-3xl font-bold tracking-tight md:text-5xl">
               {slide.heading}
             </h2>
           ) : null}
-          <ol className="relative grid gap-6 border-l border-foreground/15 pl-6 md:gap-8">
+          <ol className="relative grid gap-6 border-l-[3px] border-foreground pl-8 md:gap-8">
             {slide.items.map((item) => (
               <li key={`${item.period}-${item.title}`} className="relative">
-                <span className="absolute -left-[29px] top-1.5 h-3 w-3 rounded-full bg-teal-500 ring-4 ring-background" />
-                <p className="text-sm font-semibold uppercase tracking-wide text-teal-600 dark:text-teal-400">
+                <span className="absolute -left-[37px] top-2 h-4 w-4 border-2 border-foreground bg-brutal-accent brutal-shadow-sm" />
+                <p className="font-sans text-xs font-extrabold uppercase tracking-widest text-brutal-hot">
                   {item.period}
                 </p>
-                <h3 className="text-xl font-semibold">{item.title}</h3>
-                <p className="mt-2 max-w-3xl text-foreground/85">{item.body}</p>
+                <h3 className="font-heading mt-1 text-2xl font-bold">{item.title}</h3>
+                <p className="mt-3 max-w-3xl font-sans text-base font-semibold leading-relaxed text-foreground/88">
+                  {item.body}
+                </p>
               </li>
             ))}
           </ol>
@@ -160,10 +164,10 @@ export function SlideRenderer({ slide }: { slide: Slide }) {
 
     case "twoColumn":
       return (
-        <div className="grid min-h-[60vh] items-center gap-10 md:grid-cols-2">
-          <div className="flex flex-col gap-4">
+        <div className="grid min-h-[60vh] items-center gap-12 md:grid-cols-2">
+          <div className="flex flex-col gap-5">
             {slide.left.heading ? (
-              <h2 className="text-2xl font-semibold tracking-tight md:text-3xl">
+              <h2 className="font-heading text-2xl font-bold tracking-tight md:text-4xl">
                 {slide.left.heading}
               </h2>
             ) : null}
@@ -173,9 +177,9 @@ export function SlideRenderer({ slide }: { slide: Slide }) {
               ))}
             </Prose>
           </div>
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-4">
             {slide.right.kind === "image" ? (
-              <div className="relative aspect-video w-full overflow-hidden rounded-2xl border border-foreground/10">
+              <div className="relative aspect-video w-full overflow-hidden border-[3px] border-foreground brutal-shadow">
                 <Image
                   src={slide.right.src}
                   alt={slide.right.alt}
@@ -185,7 +189,7 @@ export function SlideRenderer({ slide }: { slide: Slide }) {
                 />
               </div>
             ) : (
-              <div className="relative aspect-video w-full overflow-hidden rounded-2xl border border-foreground/10 bg-black/5">
+              <div className="relative aspect-video w-full overflow-hidden border-[3px] border-foreground bg-foreground brutal-shadow">
                 <iframe
                   title={slide.right.title}
                   src={slide.right.src}
@@ -197,7 +201,7 @@ export function SlideRenderer({ slide }: { slide: Slide }) {
               </div>
             )}
             {slide.right.kind === "image" && slide.right.caption ? (
-              <p className="text-sm text-foreground/70">{slide.right.caption}</p>
+              <p className="font-sans text-sm font-semibold text-foreground/75">{slide.right.caption}</p>
             ) : null}
           </div>
         </div>
@@ -205,12 +209,12 @@ export function SlideRenderer({ slide }: { slide: Slide }) {
 
     case "quote":
       return (
-        <figure className="flex min-h-[50vh] flex-col justify-center gap-6">
-          <blockquote className="text-3xl font-medium leading-snug text-balance md:text-4xl">
+        <figure className="flex min-h-[50vh] flex-col justify-center gap-8 border-[3px] border-foreground bg-foreground/[0.03] p-8 brutal-shadow md:p-12">
+          <blockquote className="font-heading text-3xl font-bold leading-snug text-balance md:text-5xl md:leading-snug">
             «{slide.text}»
           </blockquote>
           {slide.attribution ? (
-            <figcaption className="text-lg text-foreground/70">
+            <figcaption className="font-sans text-lg font-extrabold uppercase tracking-wide text-foreground/75">
               — {slide.attribution}
             </figcaption>
           ) : null}

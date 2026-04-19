@@ -354,47 +354,44 @@ export function DeckShell({
       <ReactionOverlay particles={reactionParticles} />
 
       {!isPresenterView && supabaseReady && !followLive ? (
-        <div className="fixed bottom-5 left-1/2 z-30 flex -translate-x-1/2 flex-col items-center gap-1 md:hidden">
+        <div className="fixed bottom-5 left-1/2 z-30 flex -translate-x-1/2 flex-col items-center gap-2 md:hidden">
           <button
             type="button"
             onClick={resumeLiveFollow}
-            className="rounded-full bg-teal-600 px-6 py-3 text-base font-bold uppercase tracking-wider text-white shadow-lg shadow-teal-600/35 active:scale-[0.98]"
+            className="brutal-pressable border-[3px] border-foreground bg-brutal-accent px-6 py-3 font-sans text-base font-extrabold uppercase tracking-widest text-brutal-accent-fg brutal-shadow"
           >
             {uiStrings.liveResumeCta}
           </button>
-          <span className="max-w-[90vw] text-center text-[11px] text-foreground/70">
+          <span className="max-w-[90vw] text-center font-sans text-[11px] font-bold uppercase tracking-wide text-foreground/75">
             {uiStrings.liveResumeHint}
           </span>
         </div>
       ) : null}
 
-      <header className="sticky top-0 z-20 border-b border-foreground/10 bg-background/90 backdrop-blur-md">
+      <header className="sticky top-0 z-20 border-b-[3px] border-foreground bg-background">
         <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-3 md:flex-row md:items-center md:justify-between">
-          <div className="flex flex-wrap items-center gap-3 text-sm">
-            <span className="font-medium">
+          <div className="flex flex-wrap items-center gap-3 font-sans text-sm font-extrabold uppercase tracking-wide">
+            <span>
               {uiStrings.slideLabel} {index + 1} {uiStrings.of} {slides.length}
             </span>
             <div
-              className="h-1.5 flex-1 min-w-[120px] overflow-hidden rounded-full bg-foreground/10 md:max-w-xs"
+              className="h-3 flex-1 min-w-[120px] overflow-hidden border-2 border-foreground bg-foreground/5 md:max-w-xs"
               role="progressbar"
               aria-valuemin={1}
               aria-valuemax={slides.length}
               aria-valuenow={index + 1}
             >
               <div
-                className="h-full rounded-full bg-teal-500 transition-[width] duration-300"
+                className="h-full bg-brutal-accent transition-[width] duration-300"
                 style={{ width: `${((index + 1) / slides.length) * 100}%` }}
               />
             </div>
             {!isPresenterView && supabaseReady && followLive ? (
               <span
-                className="inline-flex items-center gap-1.5 rounded-full bg-teal-600/20 px-2.5 py-1 text-xs font-semibold text-teal-900 ring-1 ring-teal-500/30 dark:text-teal-100"
+                className="inline-flex items-center gap-2 border-2 border-foreground bg-brutal-accent px-2.5 py-1 font-sans text-xs font-extrabold text-brutal-accent-fg brutal-shadow-sm"
                 title={uiStrings.liveFollowingHint}
               >
-                <span
-                  className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-teal-500"
-                  aria-hidden
-                />
+                <span className="inline-block h-2 w-2 animate-pulse bg-brutal-accent-fg" aria-hidden />
                 {uiStrings.synced}
               </span>
             ) : null}
@@ -402,17 +399,17 @@ export function DeckShell({
               <button
                 type="button"
                 onClick={resumeLiveFollow}
-                className="inline-flex items-center gap-2 rounded-full bg-teal-600 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-white shadow-md shadow-teal-600/25 transition hover:bg-teal-500 active:scale-[0.98]"
+                className="brutal-pressable inline-flex items-center gap-2 border-[3px] border-foreground bg-brutal-hot px-3 py-1.5 font-sans text-xs font-extrabold uppercase tracking-wide text-white brutal-shadow-sm"
                 title={uiStrings.liveResumeHint}
               >
                 {uiStrings.liveResumeCta}
-                <span className="hidden font-normal normal-case sm:inline">
-                  – {uiStrings.liveResumeHint}
+                <span className="hidden font-bold normal-case sm:inline">
+                  · {uiStrings.liveResumeHint}
                 </span>
               </button>
             ) : null}
             {isPresenterView ? (
-              <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-xs font-semibold text-amber-900 dark:text-amber-200">
+              <span className="border-2 border-foreground bg-brutal-warn px-2 py-1 font-sans text-xs font-extrabold uppercase tracking-wide text-foreground brutal-shadow-sm">
                 {uiStrings.presenterViewBadge}
               </span>
             ) : null}
@@ -420,7 +417,7 @@ export function DeckShell({
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
-              className="rounded-full border border-foreground/15 px-3 py-1.5 text-sm font-medium transition hover:bg-foreground/5"
+              className="brutal-pressable rounded-sm border-[3px] border-foreground bg-background px-3 py-2 font-sans text-xs font-extrabold uppercase tracking-wide brutal-shadow-sm disabled:opacity-40"
               onClick={() => navigateManual(index - 1)}
               disabled={index === 0}
             >
@@ -428,7 +425,7 @@ export function DeckShell({
             </button>
             <button
               type="button"
-              className="rounded-full border border-foreground/15 px-3 py-1.5 text-sm font-medium transition hover:bg-foreground/5"
+              className="brutal-pressable rounded-sm border-[3px] border-foreground bg-background px-3 py-2 font-sans text-xs font-extrabold uppercase tracking-wide brutal-shadow-sm disabled:opacity-40"
               onClick={() => navigateManual(index + 1)}
               disabled={index === maxIndex}
             >
@@ -436,7 +433,7 @@ export function DeckShell({
             </button>
             <button
               type="button"
-              className="rounded-full border border-foreground/15 px-3 py-1.5 text-sm font-medium transition hover:bg-foreground/5"
+              className="brutal-pressable rounded-sm border-[3px] border-foreground bg-brutal-accent px-3 py-2 font-sans text-xs font-extrabold uppercase tracking-wide text-brutal-accent-fg brutal-shadow-sm"
               onClick={copySlideLink}
             >
               {copyDone ? uiStrings.copied : uiStrings.copyLink}
@@ -451,22 +448,22 @@ export function DeckShell({
         <SlideRenderer slide={slide} />
       </main>
 
-      <footer className="border-t border-foreground/10 bg-background/95">
-        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-6 md:px-8">
-          <p className="text-sm text-foreground/70">
+      <footer className="border-t-[3px] border-foreground bg-background">
+        <div className="mx-auto flex max-w-6xl flex-col gap-5 px-4 py-8 md:px-8">
+          <p className="font-sans text-sm font-bold leading-relaxed text-foreground/80">
             {isPresenterView ? uiStrings.presenterHint : uiStrings.studentHint}
           </p>
 
           {supabaseReady ? (
-            <div className="rounded-2xl border border-teal-500/20 bg-gradient-to-b from-teal-500/5 to-transparent p-4 sm:p-5">
-              <p className="text-base font-semibold text-foreground sm:text-lg">
+            <div className="border-[3px] border-foreground bg-background p-4 brutal-shadow sm:p-6">
+              <p className="font-heading text-xl font-bold text-foreground md:text-2xl">
                 {uiStrings.reactionsTitle}
               </p>
-              <p className="mt-1.5 text-sm leading-snug text-foreground/70">
+              <p className="mt-2 font-sans text-sm font-semibold leading-snug text-foreground/75">
                 {uiStrings.reactionsHint}
               </p>
               <div
-                className="mt-4 grid grid-cols-5 gap-2 sm:grid-cols-6 sm:gap-3"
+                className="mt-5 grid grid-cols-5 gap-2 sm:grid-cols-6 sm:gap-3"
                 role="group"
                 aria-label={uiStrings.reactionsTitle}
               >
@@ -474,7 +471,7 @@ export function DeckShell({
                   <button
                     key={emoji}
                     type="button"
-                    className="flex aspect-square min-h-[3.1rem] items-center justify-center rounded-2xl border-2 border-foreground/10 bg-background text-[1.45rem] shadow-sm transition hover:scale-[1.06] hover:border-teal-400/60 hover:bg-teal-500/10 hover:shadow-md active:scale-95 sm:min-h-[3.25rem] sm:text-2xl md:text-3xl"
+                    className="brutal-pressable flex aspect-square min-h-[3.1rem] items-center justify-center rounded-sm border-[3px] border-foreground bg-background text-[1.45rem] brutal-shadow-sm sm:min-h-[3.25rem] sm:text-2xl md:text-3xl"
                     aria-label={label}
                     title={label}
                     onClick={() => fireReaction(emoji)}
@@ -487,49 +484,51 @@ export function DeckShell({
           ) : null}
 
           {isPresenterView ? (
-            <div className="flex flex-col gap-4 rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-4 md:flex-row md:items-start md:justify-between">
-              <label className="flex max-w-md flex-col gap-2 text-sm">
-                <span className="font-medium">{uiStrings.followPresenter}</span>
-                <span className="text-foreground/65">{uiStrings.followHint}</span>
+            <div className="flex flex-col gap-4 border-[3px] border-foreground bg-foreground/[0.04] p-5 brutal-shadow md:flex-row md:items-start md:justify-between">
+              <label className="flex max-w-md flex-col gap-2 font-sans text-sm font-bold">
+                <span className="font-heading text-base md:text-lg">{uiStrings.followPresenter}</span>
+                <span className="font-normal text-foreground/75">{uiStrings.followHint}</span>
                 <div className="flex cursor-pointer items-center gap-2 pt-1">
                   <input
                     type="checkbox"
                     checked={followLive}
                     onChange={(e) => setFollowLive(e.target.checked)}
                     disabled={!supabaseReady}
-                    className="h-4 w-4 rounded border-foreground/30"
+                    className="h-5 w-5 rounded-sm border-2 border-foreground accent-[var(--brutal-accent)]"
                   />
-                  <span className="text-foreground/80">
+                  <span className="font-semibold text-foreground">
                     {supabaseReady ? "Live-Sync aktivieren" : "Supabase nicht konfiguriert"}
                   </span>
                 </div>
               </label>
 
-              <div className="flex min-w-[260px] flex-col gap-2">
+              <div className="flex min-w-[260px] flex-col gap-3">
                 <button
                   type="button"
-                  className="text-left text-sm font-medium text-teal-700 underline-offset-4 hover:underline dark:text-teal-300"
+                  className="brutal-pressable text-left font-sans text-sm font-extrabold uppercase tracking-wide text-brutal-accent underline decoration-2 underline-offset-4"
                   onClick={togglePresenterPanel}
                 >
                   {presenterOpen ? "Presenter-Modus ausblenden" : uiStrings.presenterMode}
                 </button>
                 {presenterOpen ? (
-                  <div className="flex flex-col gap-2 rounded-xl border border-foreground/10 bg-background p-3">
-                    <label className="flex flex-col gap-1 text-xs">
+                  <div className="flex flex-col gap-3 border-[3px] border-foreground bg-background p-4 brutal-shadow-sm">
+                    <label className="flex flex-col gap-1 font-sans text-xs font-extrabold uppercase tracking-wide">
                       <span>{uiStrings.presenterKeyLabel}</span>
                       <input
                         type="password"
                         autoComplete="off"
-                        className="cursor-text rounded-lg border border-foreground/15 bg-background px-3 py-2 text-sm"
+                        className="cursor-text border-2 border-foreground bg-background px-3 py-2.5 font-medium"
                         placeholder={uiStrings.presenterKeyPlaceholder}
                         value={presenterKeyInput}
                         onChange={(e) => setPresenterKeyInput(e.target.value)}
                       />
                     </label>
-                    <p className="text-xs text-foreground/60">{uiStrings.presenterKeyStored}</p>
+                    <p className="font-sans text-xs font-semibold text-foreground/65">
+                      {uiStrings.presenterKeyStored}
+                    </p>
                     <button
                       type="button"
-                      className="rounded-lg bg-teal-600 px-3 py-2 text-sm font-medium text-white hover:bg-teal-700"
+                      className="brutal-pressable border-[3px] border-foreground bg-brutal-accent px-3 py-2.5 font-sans text-sm font-extrabold uppercase tracking-wide text-brutal-accent-fg brutal-shadow-sm"
                       onClick={persistPresenterKey}
                     >
                       Code für diese Sitzung speichern
