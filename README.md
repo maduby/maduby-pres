@@ -55,6 +55,117 @@ supabase/migrations/    → `deck_sessions`, RLS, RPCs, Realtime
 
 ---
 
+## Environment variables (from `.env.example`)
+
+Copy **`.env.example`** → **`.env.local`** and fill values. **Never commit `.env.local`** (it is gitignored).
+
+### Required for “full live” mode (lobby, sync, presenter APIs, polls)
+
+If any of the **Supabase trio** below is missing, the app still runs: slides work locally with `?s=`, but there is **no** waiting room, Realtime, or `/api/present` database writes.
+
+| Variable | Exposed to browser? | Purpose |
+|----------|---------------------|---------|
+| **`NEXT_PUBLIC_SUPABASE_URL`** | Yes | Supabase project URL (`https://xxxxx.supabase.co`). |
+| **`NEXT_PUBLIC_SUPABASE_ANON_KEY`** | Yes | **anon** key — used by the browser for Realtime (read `deck_sessions`, broadcast polls/reactions). Safe to ship; protect data with **RLS** (migrations do this). |
+| **`NEXT_PUBLIC_DECK_SESSION_ID`** | Yes | UUID of **one** row in `public.deck_sessions` for this environment (local vs preview vs production must differ). |
+| **`SUPABASE_SERVICE_ROLE_KEY`** | **No — server only** | **service_role** key — Next.js **route handlers** use it to update slides, start/stop/pause, and call `security definer` RPCs. Treat like a root password; only in Vercel “Production/Preview” env or `.env.local`. |
+| **`PRESENTER_SECRET`** | No | Password for **`/present`** (middleware + `POST /api/present/gate`). Also optional **Bearer** on present APIs. Use a long random string. |
+
+### Strongly recommended for deployed sites
+
+| Variable | Exposed? | Purpose |
+|----------|----------|---------|
+| **`NEXT_PUBLIC_SITE_URL`** | Yes | Canonical site URL (Open Graph, metadata). No trailing slash. |
+| **`NEXT_PUBLIC_AUDIENCE_URL`** | Yes | Shown in the waiting room (“Jetzt mitmachen”) link; defaults in `.env.example` if you override. |
+
+### Optional
+
+| Variable | Purpose |
+|----------|---------|
+| **`VISITOR_PASSWORD`** | Audience **Passwort-Modus**: unlock slide navigation before go-live. If unset, preview unlock returns HTTP 503. Requires `NEXT_PUBLIC_DECK_SESSION_ID` on the server too. |
+
+**Vercel tip:** use different **`NEXT_PUBLIC_DECK_SESSION_ID`** values per **Production** vs **Preview** (different rows in the same or different Supabase projects) so class staging never flips the public deck.
+
+---
+
+## Supabase: create a project and wire it up
+
+### 1. Create a Supabase project
+
+1. Go to [supabase.com](https://supabase.com), sign in, **New project**.
+2. Choose organization, **name**, **database password** (save it somewhere safe), **region** (closest to your audience).
+3. Wait until the project finishes provisioning.
+
+### 2. Get API credentials
+
+1. In the Dashboard: **Project Settings** (gear) → **API**.
+2. Copy:
+   - **Project URL** → `NEXT_PUBLIC_SUPABASE_URL`
+   - **`anon` `public`** key → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - **`service_role` `secret`** key → `SUPABASE_SERVICE_ROLE_KEY` (never expose to the client or commit)
+
+### 3. Run database migrations (schema + RLS + RPCs + Realtime)
+
+Migrations live in **`supabase/migrations/`**. They must run **in filename order** (timestamp prefix).
+
+| Order | File | What it does |
+|-------|------|----------------|
+| 1 | `20260419000000_deck_sessions.sql` | Creates **`deck_sessions`** (`id`, `slide_index`, …), enables **RLS**, policy so **anon can SELECT** only; no direct anon writes. |
+| 2 | `20260419000001_realtime_deck_sessions.sql` | Adds **`deck_sessions`** to **`supabase_realtime`** publication so **`postgres_changes`** works for live slide follow. |
+| 3 | `20260420120000_presenter_lease.sql` | Presenter **lease** columns + **`presenter_push_slide`** / heartbeat RPCs (service role only). |
+| 4 | `20260421120000_presentation_started_at.sql` | **Lobby**: `presentation_started_at` + **`presenter_start_presentation`** RPC. |
+| 5 | `20260422100000_presenter_start_session_not_found.sql` | Improves **`presenter_start_presentation`** when the session UUID row is missing (clearer errors). |
+| 6 | `20260423000000_deck_sessions_environment_label.sql` | **`environment_label`** column (e.g. `local`, `staging`, `production`) for your own bookkeeping. |
+| 7 | `20260424000000_presentation_pause_stop.sql` | **`presentation_paused`**, pause/stop RPCs used by presenter controls. |
+
+**Option A — Supabase Dashboard (simplest for students)**
+
+1. Open **SQL Editor** → **New query**.
+2. Open each file locally in order, **paste** the full file, click **Run**.
+3. If step 2 errors with “already member of publication”, the table was already added to Realtime — you can skip re-adding or ignore that specific statement once.
+
+**Option B — Supabase CLI**
+
+1. Install [Supabase CLI](https://supabase.com/docs/guides/cli), run `supabase login`, then `supabase link` to this project.
+2. From the repo root: `supabase db push` (applies pending migrations to the linked remote database).  
+   Use the same ordering the CLI infers from filenames.
+
+### 4. Confirm Realtime is enabled for `deck_sessions`
+
+1. Dashboard → **Database** → **Publications** (or **Realtime** settings, depending on UI version).
+2. Ensure **`supabase_realtime`** includes **`public.deck_sessions`**.  
+   Migration `20260419000001` runs `alter publication supabase_realtime add table public.deck_sessions;` — if that succeeded, you’re set.
+
+### 5. Insert a `deck_sessions` row and set `NEXT_PUBLIC_DECK_SESSION_ID`
+
+Run in **SQL Editor**:
+
+```sql
+insert into public.deck_sessions (environment_label)
+values ('local')
+returning id;
+```
+
+Copy the returned **`id`** into **`NEXT_PUBLIC_DECK_SESSION_ID`** in `.env.local`.
+
+Repeat for **`staging`** / **`production`** labels when you create Preview/Production envs; each environment gets its **own UUID**.
+
+### 6. Quick verification
+
+- **Table:** **Table Editor** → `deck_sessions` → one row, `slide_index` 0, `presentation_started_at` null until you start.
+- **RLS:** anon key in the browser should **read** the row; it should **not** be able to arbitrary **update** (writes go through your Next API + service role).
+
+### Common problems
+
+| Symptom | Likely cause |
+|---------|----------------|
+| Audience never leaves lobby / start fails with migration hint | Migrations not fully applied; RPC **`presenter_start_presentation`** missing or old. Re-run migration files from `20260421120000` onward. |
+| Live follow dead, no errors | **Realtime** not subscribed — check publication; check **`NEXT_PUBLIC_*`** keys and session id. |
+| `session_not_found` on start | **`NEXT_PUBLIC_DECK_SESSION_ID`** doesn’t match any row UUID in **this** Supabase project. |
+| `lease_denied` | Another presenter tab holds the lease; wait ~90s or use presenter “takeover” in UI. |
+
+---
+
 ## Tutorial: run it locally
 
 ### 1. Clone and install
@@ -67,43 +178,13 @@ npm install
 
 ### 2. Environment file
 
-Only **`.env.example`** is committed. Copy it and fill real values:
-
 ```bash
 cp .env.example .env.local
 ```
 
-Never commit `.env.local` — it is gitignored.
+Fill **`.env.local`** using the tables in **Environment variables** and complete **Supabase: create a project** above (migrations + insert row + paste keys).
 
-### 3. Supabase: create the deck session row
-
-1. In Supabase SQL Editor, run **all** files in `supabase/migrations/` **in order** (or use `supabase db push` if you use the Supabase CLI linked to this project).
-2. Enable **Realtime** for `public.deck_sessions` if your migration didn’t already (Dashboard → Database → Publications, or your migration for `supabase_realtime`).
-3. Insert **one row** per environment (local / preview / production):
-
-   ```sql
-   insert into public.deck_sessions (environment_label)
-   values ('local')
-   returning id;
-   ```
-
-4. Copy the returned **`id`** (UUID) into **`NEXT_PUBLIC_DECK_SESSION_ID`** in `.env.local`.
-
-### 4. Fill `.env.local` (minimal live setup)
-
-| Variable | Role |
-|----------|------|
-| `NEXT_PUBLIC_SUPABASE_URL` | Project URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | anon public key |
-| `NEXT_PUBLIC_DECK_SESSION_ID` | UUID of your `deck_sessions` row |
-| `SUPABASE_SERVICE_ROLE_KEY` | **Server only** — used by `/api/present/*` to update slides and call RPCs |
-| `PRESENTER_SECRET` | Long random string; presenter login + Bearer for APIs |
-| `VISITOR_PASSWORD` | Optional; audience “Passwort-Modus” preview |
-| `NEXT_PUBLIC_AUDIENCE_URL` / `NEXT_PUBLIC_SITE_URL` | Your public site for links and OG metadata |
-
-See comments in **`.env.example`** for Preview vs Production session IDs on Vercel.
-
-### 5. Dev server
+### 3. Dev server
 
 ```bash
 npm run dev
