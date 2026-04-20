@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useLayoutEffect } from "react";
 import { motion } from "framer-motion";
 import type { Slide } from "@/lib/deck/schema";
 import { uiStrings } from "@/content/strings.de-ch";
@@ -77,7 +77,7 @@ export function LivePollSlideContent({
     submitVote,
   } = useDeckPoll();
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (slideIndex !== activeSlideIndex) {
       registerPollSlide(null);
       return;

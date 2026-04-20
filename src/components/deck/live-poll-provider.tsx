@@ -19,6 +19,9 @@ const EVT_RESET = "deck_poll_reset";
 const EVT_VOTE = "deck_poll_vote";
 
 const HEARTBEAT_MS = 12_000;
+/** If "Umfrage live schalten" or a vote fires before Realtime SUBSCRIBED, `send` is a no-op; retry briefly. */
+const BROADCAST_RETRY_MS = 12_000;
+const BROADCAST_RETRY_INTERVAL_MS = 80;
 
 export interface LivePollSnapshot {
   pollId: string;
@@ -107,11 +110,19 @@ export function LivePollProvider({
   const channelReadyRef = useRef(false);
   const seenVotersRef = useRef<Set<string>>(new Set());
   const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const broadcastRetryIntervalRef = useRef<number | null>(null);
 
   const clearHeartbeat = useCallback(() => {
     if (heartbeatRef.current) {
       clearInterval(heartbeatRef.current);
       heartbeatRef.current = null;
+    }
+  }, []);
+
+  const clearBroadcastRetry = useCallback(() => {
+    if (broadcastRetryIntervalRef.current !== null) {
+      window.clearInterval(broadcastRetryIntervalRef.current);
+      broadcastRetryIntervalRef.current = null;
     }
   }, []);
 
@@ -122,6 +133,33 @@ export function LivePollProvider({
       await ch.send({ type: "broadcast", event, payload });
     },
     [],
+  );
+
+  /** Retries until the channel is ready or timeout (covers SUBSCRIBE race on go-live and votes). */
+  const sendBroadcastReliable = useCallback(
+    (event: string, payload: Record<string, unknown>) => {
+      clearBroadcastRetry();
+      const trySend = async (): Promise<boolean> => {
+        const ch = channelRef.current;
+        if (!channelReadyRef.current || !ch) return false;
+        await ch.send({ type: "broadcast", event, payload });
+        return true;
+      };
+      void (async () => {
+        if (await trySend()) return;
+        const started = Date.now();
+        broadcastRetryIntervalRef.current = window.setInterval(() => {
+          void (async () => {
+            if (Date.now() - started > BROADCAST_RETRY_MS) {
+              clearBroadcastRetry();
+              return;
+            }
+            if (await trySend()) clearBroadcastRetry();
+          })();
+        }, BROADCAST_RETRY_INTERVAL_MS);
+      })();
+    },
+    [clearBroadcastRetry],
   );
 
   const broadcastReset = useCallback(async () => {
@@ -206,7 +244,7 @@ export function LivePollProvider({
             const nextTallies = [...prev.tallies];
             nextTallies[optionIndex] += 1;
             const next: LivePollSnapshot = { ...prev, tallies: nextTallies };
-            void sendBroadcast(EVT_STATE, next as unknown as Record<string, unknown>);
+            sendBroadcastReliable(EVT_STATE, next as unknown as Record<string, unknown>);
             return next;
           });
         },
@@ -215,6 +253,16 @@ export function LivePollProvider({
         if (status === "SUBSCRIBED") {
           channelReadyRef.current = true;
           channelRef.current = channel;
+          if (isPresenterView) {
+            const live = snapshotRef.current;
+            if (live?.status === "live") {
+              void channel.send({
+                type: "broadcast",
+                event: EVT_STATE,
+                payload: live as unknown as Record<string, unknown>,
+              });
+            }
+          }
         }
         if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
           channelReadyRef.current = false;
@@ -225,17 +273,19 @@ export function LivePollProvider({
       channelReadyRef.current = false;
       channelRef.current = null;
       clearHeartbeat();
+      clearBroadcastRetry();
       void channel.unsubscribe();
     };
   }, [
     applyIncomingState,
+    clearBroadcastRetry,
     clearHeartbeat,
     isPresenterView,
+    sendBroadcastReliable,
     sessionId,
     supabaseAnon,
     supabaseReady,
     supabaseUrl,
-    sendBroadcast,
   ]);
 
   useEffect(() => {
@@ -270,18 +320,18 @@ export function LivePollProvider({
       status: "live",
     };
     setSnapshot(next);
-    void sendBroadcast(EVT_STATE, next as unknown as Record<string, unknown>);
-  }, [isPresenterView, sendBroadcast, supabaseReady]);
+    sendBroadcastReliable(EVT_STATE, next as unknown as Record<string, unknown>);
+  }, [isPresenterView, sendBroadcastReliable, supabaseReady]);
 
   const endLivePoll = useCallback(() => {
     if (!isPresenterView) return;
     setSnapshot((prev) => {
       if (!prev || prev.status !== "live") return prev;
       const closed: LivePollSnapshot = { ...prev, status: "results" };
-      void sendBroadcast(EVT_STATE, closed as unknown as Record<string, unknown>);
+      sendBroadcastReliable(EVT_STATE, closed as unknown as Record<string, unknown>);
       return closed;
     });
-  }, [isPresenterView, sendBroadcast]);
+  }, [isPresenterView, sendBroadcastReliable]);
 
   useEffect(() => {
     if (!isPresenterView) return;
@@ -355,13 +405,13 @@ export function LivePollProvider({
         return;
       }
       setAudienceHasVoted(true);
-      void sendBroadcast(EVT_VOTE, {
+      sendBroadcastReliable(EVT_VOTE, {
         pollId: snap.pollId,
         optionIndex,
         voterId,
       });
     },
-    [audienceHasVoted, isPresenterView, sendBroadcast, snapshot, supabaseReady],
+    [audienceHasVoted, isPresenterView, sendBroadcastReliable, snapshot, supabaseReady],
   );
 
   const value = useMemo(
