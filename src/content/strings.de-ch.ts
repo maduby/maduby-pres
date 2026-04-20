@@ -129,9 +129,12 @@ export const uiStrings = {
   preStartHeaderBadge: "Wartezimmer",
   preStartHeaderPreviewBadge: "Vorschau (Passwort)",
   visitorPasswordModeCta: "Passwort-Modus",
+  visitorPasswordHeaderToggleShow: "Passwort-Modus: Eingabe einblenden",
+  visitorPasswordHeaderToggleHide: "Passwort-Modus: Eingabe ausblenden",
   visitorPasswordModeHint:
     "Mit dem Veranstaltungs-Passwort kannst du die Folien schon durchblättern, bevor die Präsentation für alle startet.",
   visitorPasswordLabel: "Passwort",
+  visitorPasswordPlaceholder: "Passwort eingeben",
   visitorPasswordSubmit: "Folien entsperren",
   visitorPasswordSubmitting: "Wird geprüft …",
   visitorPasswordError: "Passwort ungültig.",

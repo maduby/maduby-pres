@@ -15,6 +15,7 @@ import { createClient, type RealtimeChannel } from "@supabase/supabase-js";
 import {
   ChevronLeft,
   ChevronRight,
+  KeyRound,
   MessageCircle,
   Presentation,
   Users,
@@ -24,6 +25,7 @@ import type { Slides } from "@/lib/deck/schema";
 import { DeckSlideSwiper } from "@/components/deck/deck-slide-swiper";
 import { LivePollProvider } from "@/components/deck/live-poll-provider";
 import { PresentationWaitingRoom } from "@/components/deck/presentation-waiting-room";
+import { VisitorPasswordUnlockForm } from "@/components/deck/visitor-password-unlock-form";
 import { FeedbackDrawer } from "@/components/ui/feedback-drawer";
 import { BigSwagOverlay } from "@/components/deck/big-swag-overlay";
 import { BrutalGradientChip } from "@/components/deck/brutal-gradient-chip";
@@ -134,6 +136,7 @@ export function DeckShell({
   );
   const openedPresentationOnceRef = useRef(false);
   const [visitorPreviewUnlocked, setVisitorPreviewUnlocked] = useState(false);
+  const [visitorHeaderUnlockOpen, setVisitorHeaderUnlockOpen] = useState(false);
 
   const livePresentationStarted =
     supabaseReady && Boolean(sessionRow.presentationStartedAt);
@@ -246,6 +249,11 @@ export function DeckShell({
       cancelled = true;
     };
   }, [isPresenterView, sessionId]);
+
+  useEffect(() => {
+    if (!visitorPreviewUnlocked) return;
+    startTransition(() => setVisitorHeaderUnlockOpen(false));
+  }, [visitorPreviewUnlocked]);
 
   const go = useCallback(
     (next: number) => {
@@ -1271,6 +1279,34 @@ export function DeckShell({
             >
               <ChevronRight className="size-4 shrink-0" strokeWidth={2.5} aria-hidden />
             </button>
+            {!isPresenterView &&
+            supabaseReady &&
+            !livePresentationStarted &&
+            !visitorPreviewUnlocked ? (
+              <button
+                type="button"
+                id="visitor-header-unlock-toggle"
+                aria-expanded={visitorHeaderUnlockOpen}
+                aria-controls="visitor-header-unlock-panel"
+                title={
+                  visitorHeaderUnlockOpen
+                    ? uiStrings.visitorPasswordHeaderToggleHide
+                    : uiStrings.visitorPasswordHeaderToggleShow
+                }
+                aria-label={
+                  visitorHeaderUnlockOpen
+                    ? uiStrings.visitorPasswordHeaderToggleHide
+                    : uiStrings.visitorPasswordHeaderToggleShow
+                }
+                onClick={() => setVisitorHeaderUnlockOpen((o) => !o)}
+                className={cn(
+                  "brutal-pressable inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-sm border-[3px] border-foreground bg-background font-sans text-xs font-extrabold uppercase tracking-wide brutal-shadow-sm",
+                  visitorHeaderUnlockOpen && "bg-brutal-accent/25",
+                )}
+              >
+                <KeyRound className="size-4 shrink-0" strokeWidth={2.5} aria-hidden />
+              </button>
+            ) : null}
             <div className="flex shrink-0 items-center gap-1.5 md:contents">
               {!isPresenterView && supabaseReady ? (
                 <button
@@ -1346,6 +1382,31 @@ export function DeckShell({
             </div>
           </div>
         </div>
+
+        {!isPresenterView &&
+        supabaseReady &&
+        !livePresentationStarted &&
+        !visitorPreviewUnlocked &&
+        visitorHeaderUnlockOpen ? (
+          <div
+            id="visitor-header-unlock-panel"
+            className="border-t-[3px] border-foreground bg-foreground/[0.04] px-4 py-3 md:px-6"
+            role="region"
+            aria-label={uiStrings.visitorPasswordModeCta}
+          >
+            <div className="mx-auto max-w-md">
+              <VisitorPasswordUnlockForm
+                showHint
+                onSuccess={() => {
+                  startTransition(() => {
+                    setVisitorPreviewUnlocked(true);
+                    setVisitorHeaderUnlockOpen(false);
+                  });
+                }}
+              />
+            </div>
+          </div>
+        ) : null}
 
         {isPresenterView && (leaseLost || presenterQuickControlsOpen) ? (
           <div className="border-t-[3px] border-foreground bg-foreground/[0.03] px-4 py-2.5">
