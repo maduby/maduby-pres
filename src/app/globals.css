@@ -5,9 +5,15 @@
   --background: #f2f0e8;
   --foreground: #0c0c0c;
   --brutal-accent: #0f766e;
+  /** Darker partner for LIVE pulse — keeps ≥4.5:1 with white label text (WCAG AA) */
+  --brutal-accent-pulse: #115e59;
   --brutal-accent-fg: #ecfeff;
+  /** LIVE toggle “on”: high-contrast label on animated greens */
+  --brutal-live-follow-fg: #ffffff;
   --brutal-hot: #be123c;
   --brutal-warn: #ca8a04;
+  /** Text on solid warn surfaces — dark on amber/yellow for WCAG AA */
+  --brutal-warn-fg: #0c0c0c;
   --brutal-border: 3px solid var(--foreground);
   --brutal-shadow: 5px 5px 0 0 var(--foreground);
   --brutal-shadow-sm: 3px 3px 0 0 var(--foreground);
@@ -21,8 +27,9 @@
   --color-brutal-accent-fg: var(--brutal-accent-fg);
   --color-brutal-hot: var(--brutal-hot);
   --color-brutal-warn: var(--brutal-warn);
-  --font-sans: var(--font-nunito-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-heading: var(--font-halant), ui-serif, Georgia, "Times New Roman", serif;
+  --color-brutal-warn-fg: var(--brutal-warn-fg);
+  --font-sans: var(--font-montserrat), ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-libre-baskerville), ui-serif, Georgia, "Times New Roman", serif;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -30,9 +37,14 @@
     --background: #0a0a0b;
     --foreground: #f4f4ef;
     --brutal-accent: #2dd4bf;
+    /** Slightly deeper teal — paired with dark label for AA contrast */
+    --brutal-accent-pulse: #14b8a6;
     --brutal-accent-fg: #042f2e;
+    --brutal-live-follow-fg: #042f2e;
     --brutal-hot: #fb7185;
-    --brutal-warn: #facc15;
+    /** Saturated but not neon — label uses dark ink for ≥4.5:1 (AA) */
+    --brutal-warn: #e4b80d;
+    --brutal-warn-fg: #0a0a0b;
   }
 }
 
@@ -54,6 +66,56 @@ body {
   box-shadow: var(--brutal-shadow-sm);
 }
 
+/** Muted brutalist panel: accent wash + fine diagonal hatch (quote slides, etc.) */
+@keyframes brutal-chip-gradient {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.brutal-gradient-chip {
+  background-image: linear-gradient(
+    125deg,
+    var(--brutal-accent-pulse) 0%,
+    var(--brutal-accent) 32%,
+    color-mix(in srgb, var(--brutal-accent) 55%, var(--brutal-accent-fg) 45%) 50%,
+    var(--brutal-accent) 68%,
+    var(--brutal-accent-pulse) 100%
+  );
+  background-size: 240% 240%;
+  animation: brutal-chip-gradient 3.6s ease-in-out infinite;
+  text-shadow:
+    0 0 1px rgb(0 0 0 / 0.2),
+    0 1px 1px rgb(0 0 0 / 0.15);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brutal-gradient-chip {
+    animation: none;
+    background-image: none;
+    background-color: var(--brutal-accent);
+  }
+}
+
+.brutal-quote-box {
+  background-color: color-mix(in srgb, var(--foreground) 7%, var(--background));
+  background-image:
+    repeating-linear-gradient(
+      -42deg,
+      color-mix(in srgb, var(--foreground) 5%, transparent) 0 1px,
+      transparent 1px 14px
+    ),
+    linear-gradient(
+      165deg,
+      color-mix(in srgb, var(--brutal-accent) 14%, var(--background)) 0%,
+      transparent 55%
+    );
+}
+
 .brutal-pressable {
   transition:
     transform 0.08s ease,
@@ -68,6 +130,39 @@ body {
 .brutal-pressable:active:not(:disabled) {
   transform: translate(2px, 2px);
   box-shadow: 1px 1px 0 0 var(--foreground);
+}
+
+/** Audience LIVE toggle: gentle two-tone green when following the deck */
+@keyframes brutal-live-follow-pulse {
+  0%,
+  100% {
+    background-color: var(--brutal-accent);
+  }
+  50% {
+    background-color: var(--brutal-accent-pulse);
+  }
+}
+
+.brutal-live-follow-pulse {
+  animation: brutal-live-follow-pulse 2.5s ease-in-out infinite;
+  color: var(--brutal-live-follow-fg);
+  /** Improves legibility on mid-teal frames (esp. light theme) */
+  text-shadow:
+    0 0 1px rgb(0 0 0 / 0.35),
+    0 1px 2px rgb(0 0 0 / 0.28);
+}
+
+@media (prefers-color-scheme: dark) {
+  .brutal-live-follow-pulse {
+    text-shadow: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brutal-live-follow-pulse {
+    animation: none;
+    background-color: var(--brutal-accent) !important;
+  }
 }
 
 button:not(:disabled),
@@ -97,7 +192,7 @@ input[type="radio"]:disabled {
     transform: translate(-50%, 0) scale(0.5) rotate(-10deg);
     opacity: 0;
   }
-  10% {
+  22% {
     opacity: 1;
     transform: translate(-50%, 0) scale(1.12) rotate(6deg);
   }
@@ -115,7 +210,7 @@ input[type="radio"]:disabled {
     transform: translate(-50%, 0) scale(0.45) rotate(12deg);
     opacity: 0;
   }
-  12% {
+  24% {
     opacity: 1;
     transform: translate(-50%, 0) scale(1.08) rotate(-6deg);
   }
@@ -131,4 +226,40 @@ input[type="radio"]:disabled {
 .deck-reaction-particle {
   will-change: transform, opacity;
   animation-iteration-count: 1;
+  opacity: 0;
+}
+
+@keyframes deck-swag-blast-pop {
+  0% {
+    transform: scale(0.35);
+    opacity: 0;
+  }
+  55% {
+    transform: scale(1.06);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.deck-swag-blast-pop {
+  animation: deck-swag-blast-pop 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Swiper fills the 16:9 stage; slides must cap height so inner overflow-y-auto can scroll */
+.deck-swiper.swiper {
+  height: 100%;
+  min-height: 0;
+}
+.deck-swiper .swiper-wrapper {
+  height: 100%;
+  min-height: 0;
+}
+.deck-swiper .swiper-slide.deck-swiper-slide {
+  height: 100%;
+  max-height: 100%;
+  min-height: 0;
+  box-sizing: border-box;
 }

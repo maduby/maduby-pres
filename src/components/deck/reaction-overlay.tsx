@@ -8,6 +8,8 @@ export interface ReactionParticle {
   sizeRem?: number;
   durationMs?: number;
   mode?: "rise" | "fall";
+  /** CSS timing function for the travel animation */
+  timingFn?: string;
 }
 
 export function ReactionOverlay({ particles }: { particles: ReactionParticle[] }) {
@@ -22,6 +24,7 @@ export function ReactionOverlay({ particles }: { particles: ReactionParticle[] }
         const delay = p.delayMs ?? 0;
         const durationSec = ((p.durationMs ?? 3400) / 1000).toFixed(2);
         const size = p.sizeRem ?? 3;
+        const ease = p.timingFn ?? "cubic-bezier(0.22, 1, 0.36, 1)";
         const anim =
           p.mode === "fall" ? "deck-reaction-fall" : "deck-reaction-rise";
         return (
@@ -31,7 +34,7 @@ export function ReactionOverlay({ particles }: { particles: ReactionParticle[] }
             style={{
               left: `${p.x}%`,
               fontSize: `${size}rem`,
-              animation: `${anim} ${durationSec}s cubic-bezier(0.22, 1, 0.36, 1) ${delay}ms forwards`,
+              animation: `${anim} ${durationSec}s ${ease} ${delay}ms 1 normal both`,
             }}
           >
             {p.emoji}

@@ -1,18 +1,17 @@
 import type { Metadata } from "next";
-import { Halant, Nunito_Sans } from "next/font/google";
+import { Libre_Baskerville, Montserrat } from "next/font/google";
 import "./globals.css";
 
-const halant = Halant({
-  variable: "--font-halant",
+const libreBaskerville = Libre_Baskerville({
+  variable: "--font-libre-baskerville",
   subsets: ["latin"],
-  weight: ["600", "700"],
+  weight: ["700"],
   display: "swap",
 });
 
-const nunitoSans = Nunito_Sans({
-  variable: "--font-nunito-sans",
+const montserrat = Montserrat({
+  variable: "--font-montserrat",
   subsets: ["latin"],
-  weight: ["500", "600", "700", "800"],
   display: "swap",
 });
 
@@ -30,9 +29,9 @@ export default function RootLayout({
   return (
     <html
       lang="de-CH"
-      className={`${halant.variable} ${nunitoSans.variable} h-full`}
+      className={`${libreBaskerville.variable} ${montserrat.variable} min-h-[100svh] h-[100svh]`}
     >
-      <body className="min-h-full flex flex-col font-sans font-medium antialiased">
+      <body className="flex min-h-[100svh] flex-col font-sans font-medium antialiased">
         {children}
       </body>
     </html>

@@ -3,6 +3,46 @@ import type { ReactionParticle } from "@/components/deck/reaction-overlay";
 export const REACTION_BURST_WINDOW_MS = 1400;
 export const MAX_BURST_INTENSITY = 12;
 
+const REACTION_TIMING_FNS = [
+  "cubic-bezier(0.22, 1, 0.36, 1)",
+  "cubic-bezier(0.4, 0, 0.2, 1)",
+  "cubic-bezier(0.34, 1.35, 0.64, 1)",
+  "cubic-bezier(0.25, 0.46, 0.45, 0.94)",
+  "cubic-bezier(0.55, 0.06, 0.68, 0.19)",
+  "cubic-bezier(0.17, 0.67, 0.83, 0.67)",
+] as const;
+
+function pickTimingFn(): string {
+  return REACTION_TIMING_FNS[
+    Math.floor(Math.random() * REACTION_TIMING_FNS.length)
+  ]!;
+}
+
+/** rem — wide spread with a few tiny / chunky outliers */
+function randomParticleSizeRem(intensity: number): number {
+  const roll = Math.random();
+  const base = 0.75 + Math.pow(Math.random(), 0.5) * 3.6;
+  const outlier =
+    roll > 0.94 ? 1.15 + Math.random() * 0.9 : roll < 0.08 ? -0.35 - Math.random() * 0.35 : 0;
+  return Math.max(0.55, base + outlier + intensity * 0.075);
+}
+
+/** ms — mix of quick darts, cruisers, and slow drifters */
+function randomTravelDurationMs(intensity: number): number {
+  const band = Math.random();
+  const i = intensity * 140;
+  if (band < 0.22) {
+    return 950 + Math.random() * 850 + i * 0.55;
+  }
+  if (band < 0.55) {
+    return 1750 + Math.random() * 1400 + i * 0.75;
+  }
+  if (band < 0.82) {
+    return 2800 + Math.random() * 1600 + i;
+  }
+  return 3800 + Math.random() * 2600 + i * 1.1;
+}
+
 export function recordBurstIntensity(burstTimestampsRef: {
   current: number[];
 }): number {
@@ -28,69 +68,13 @@ export function buildEmojiBurst(
       id: `${Date.now()}-${i}-${Math.random().toString(36).slice(2, 10)}`,
       emoji,
       x: 2 + Math.random() * 96,
-      delayMs: Math.random() * 480,
-      sizeRem: 1.85 + Math.random() * 1.9 + capped * 0.06,
-      durationMs: 2600 + Math.random() * 1600 + capped * 220,
+      delayMs: Math.random() * 620,
+      sizeRem: randomParticleSizeRem(capped),
+      durationMs: randomTravelDurationMs(capped),
+      timingFn: pickTimingFn(),
       mode: fromTop ? "fall" : "rise",
     });
   }
 
   return particles;
-}
-
-export async function fireConfettiForIntensity(intensity: number): Promise<void> {
-  if (typeof window === "undefined") return;
-  const confetti = (await import("canvas-confetti")).default;
-  const n = Math.min(MAX_BURST_INTENSITY, Math.max(1, intensity));
-
-  const base = {
-    origin: { x: 0.5, y: 0.9 },
-    zIndex: 240,
-    gravity: 0.9,
-    ticks: 280,
-    colors: [
-      "#14b8a6",
-      "#f472b6",
-      "#fbbf24",
-      "#a78bfa",
-      "#38bdf8",
-      "#fb7185",
-      "#4ade80",
-      "#facc15",
-    ],
-  };
-
-  void confetti({
-    ...base,
-    particleCount: Math.min(200, 26 + n * 30),
-    spread: 58 + n * 8,
-    startVelocity: 26 + n * 5,
-    scalar: 0.9,
-  });
-
-  if (n >= 4) {
-    window.setTimeout(() => {
-      void confetti({
-        ...base,
-        particleCount: Math.min(160, 40 + n * 22),
-        spread: 100,
-        startVelocity: 32 + n * 3,
-        scalar: 0.75,
-        gravity: 0.75,
-      });
-    }, 120);
-  }
-
-  if (n >= 8) {
-    window.setTimeout(() => {
-      void confetti({
-        ...base,
-        particleCount: 90,
-        spread: 360,
-        startVelocity: 18,
-        scalar: 0.65,
-        gravity: 1.05,
-      });
-    }, 220);
-  }
 }
