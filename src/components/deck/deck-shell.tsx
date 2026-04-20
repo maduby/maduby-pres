@@ -38,6 +38,7 @@ import { cn } from "@/lib/utils";
 const PRESENTER_STORAGE_KEY = "fhgr-deck-presenter-secret";
 const PRESENTER_HOLDER_KEY = "fhgr-presenter-holder";
 const FEEDBACK_SIDEBAR_KEY = "fhgr-feedback-sidebar-open";
+const PRESENTER_QUICK_CONTROLS_KEY = "fhgr-presenter-quick-controls-open";
 /** REST fallback interval if a Realtime event is missed (primary sync is WebSocket). */
 const POLL_MS = 8000;
 const REACTION_COOLDOWN_MS = 260;
@@ -152,6 +153,7 @@ export function DeckShell({
   const [leaseLost, setLeaseLost] = useState(false);
   const [leaseTakeoverPending, setLeaseTakeoverPending] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [presenterQuickControlsOpen, setPresenterQuickControlsOpen] = useState(true);
   const [reactionParticles, setReactionParticles] = useState<ReactionParticle[]>(
     [],
   );
@@ -266,6 +268,16 @@ export function DeckShell({
     if (typeof window === "undefined") return;
     try {
       window.sessionStorage.setItem(FEEDBACK_SIDEBAR_KEY, open ? "1" : "0");
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  const setPresenterQuickControlsPersisted = useCallback((open: boolean) => {
+    setPresenterQuickControlsOpen(open);
+    if (typeof window === "undefined") return;
+    try {
+      window.sessionStorage.setItem(PRESENTER_QUICK_CONTROLS_KEY, open ? "1" : "0");
     } catch {
       /* ignore */
     }
@@ -502,6 +514,20 @@ export function DeckShell({
       /* ignore */
     }
   }, []);
+
+  useEffect(() => {
+    if (!isPresenterView) return;
+    try {
+      const v = window.sessionStorage.getItem(PRESENTER_QUICK_CONTROLS_KEY);
+      if (v === "0") {
+        startTransition(() => {
+          setPresenterQuickControlsOpen(false);
+        });
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [isPresenterView]);
 
   const releasePresenterLease = useCallback(
     async (keepalive = false) => {
@@ -1157,10 +1183,32 @@ export function DeckShell({
               />
             </div>
             {isPresenterView ? (
-              <span className="inline-flex items-center gap-1.5 border-2 border-foreground bg-brutal-warn px-2 py-1 font-sans text-xs font-extrabold uppercase tracking-wide text-brutal-warn-fg brutal-shadow-sm">
+              <button
+                type="button"
+                id="presenter-view-toggle"
+                aria-pressed={presenterQuickControlsOpen}
+                aria-expanded={presenterQuickControlsOpen}
+                aria-controls={
+                  presenterQuickControlsOpen ? "presenter-quick-controls" : undefined
+                }
+                title={
+                  presenterQuickControlsOpen
+                    ? uiStrings.presenterViewToggleAriaHide
+                    : uiStrings.presenterViewToggleAriaShow
+                }
+                aria-label={
+                  presenterQuickControlsOpen
+                    ? uiStrings.presenterViewToggleAriaHide
+                    : uiStrings.presenterViewToggleAriaShow
+                }
+                onClick={() =>
+                  setPresenterQuickControlsPersisted(!presenterQuickControlsOpen)
+                }
+                className="brutal-pressable inline-flex items-center gap-1.5 border-2 border-foreground bg-brutal-warn px-2 py-1 font-sans text-xs font-extrabold uppercase tracking-wide text-brutal-warn-fg brutal-shadow-sm"
+              >
                 <Presentation className="size-3.5 shrink-0" strokeWidth={2.5} aria-hidden />
                 {uiStrings.presenterViewBadge}
-              </span>
+              </button>
             ) : null}
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -1235,12 +1283,12 @@ export function DeckShell({
           </div>
         </div>
 
-        {isPresenterView ? (
+        {isPresenterView && (leaseLost || presenterQuickControlsOpen) ? (
           <div className="border-t-[3px] border-foreground bg-foreground/[0.03] px-4 py-2.5">
             {leaseLost ? (
               <div
                 role="alert"
-                className="mb-3 border-[3px] border-foreground bg-red-600/15 px-3 py-2.5 text-foreground brutal-shadow-sm dark:bg-red-500/20"
+                className={`border-[3px] border-foreground bg-red-600/15 px-3 py-2.5 text-foreground brutal-shadow-sm dark:bg-red-500/20 ${presenterQuickControlsOpen ? "mb-3" : ""}`}
               >
                 <p className="font-sans text-xs font-extrabold uppercase tracking-wide">
                   {uiStrings.presenterLeaseLostBanner}
@@ -1260,73 +1308,78 @@ export function DeckShell({
                 </button>
               </div>
             ) : null}
-            <div className="mx-auto flex max-w-none flex-col gap-3 md:flex-row md:flex-wrap md:items-start md:justify-between md:gap-4">
-              {presentationOpen && supabaseReady ? (
-                <div className="flex flex-wrap items-center gap-2 font-sans text-xs font-extrabold uppercase tracking-wide">
-                  <button
-                    type="button"
-                    disabled={presenterTransportPending || leaseLost}
-                    onClick={() => void setPresentationPausedRemote(!sessionRow.presentationPaused)}
-                    className="brutal-pressable border-[3px] border-foreground bg-background px-3 py-2 brutal-shadow-sm disabled:opacity-45"
+            {presenterQuickControlsOpen ? (
+              <div className="mx-auto flex max-w-none flex-col gap-3 md:flex-row md:flex-wrap md:items-start md:justify-between md:gap-4">
+                {presentationOpen && supabaseReady ? (
+                  <div
+                    id="presenter-quick-controls"
+                    className="flex flex-wrap items-center gap-2 font-sans text-xs font-extrabold uppercase tracking-wide"
                   >
-                    {sessionRow.presentationPaused
-                      ? uiStrings.presenterResume
-                      : uiStrings.presenterPause}
-                  </button>
-                  <button
-                    type="button"
-                    disabled={presenterTransportPending || leaseLost}
-                    onClick={() => void stopPresentationRemote()}
-                    className="brutal-pressable border-[3px] border-foreground bg-brutal-warn px-3 py-2 text-brutal-warn-fg brutal-shadow-sm disabled:opacity-45"
-                  >
-                    {uiStrings.presenterStop}
-                  </button>
-                </div>
-              ) : null}
-              <div className="flex min-w-0 flex-1 flex-col gap-2 md:max-w-md md:flex-none">
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                  <button
-                    type="button"
-                    className="brutal-pressable w-fit text-left font-sans text-xs font-extrabold uppercase tracking-wide text-brutal-accent underline decoration-2 underline-offset-4"
-                    onClick={togglePresenterPanel}
-                  >
-                    {presenterOpen ? "Presenter-Modus ausblenden" : uiStrings.presenterMode}
-                  </button>
-                  <button
-                    type="button"
-                    className="brutal-pressable w-fit font-sans text-xs font-extrabold uppercase tracking-wide text-foreground/70 underline decoration-2 underline-offset-4"
-                    onClick={() => void logoutPresenter()}
-                  >
-                    {uiStrings.presenterLogout}
-                  </button>
-                </div>
-                {presenterOpen ? (
-                  <div className="flex flex-col gap-3 border-[3px] border-foreground bg-background p-3 brutal-shadow-sm">
-                    <label className="flex flex-col gap-1 font-sans text-xs font-extrabold uppercase tracking-wide">
-                      <span>{uiStrings.presenterKeyLabel}</span>
-                      <input
-                        type="password"
-                        autoComplete="off"
-                        className="cursor-text border-2 border-foreground bg-background px-3 py-2 font-medium"
-                        placeholder={uiStrings.presenterKeyPlaceholder}
-                        value={presenterKeyInput}
-                        onChange={(e) => setPresenterKeyInput(e.target.value)}
-                      />
-                    </label>
-                    <p className="font-sans text-[11px] font-semibold text-foreground/65">
-                      {uiStrings.presenterKeyStored}
-                    </p>
                     <button
                       type="button"
-                      className="brutal-pressable border-[3px] border-foreground bg-brutal-accent px-3 py-2 font-sans text-xs font-extrabold uppercase tracking-wide text-brutal-accent-fg brutal-shadow-sm"
-                      onClick={persistPresenterKey}
+                      disabled={presenterTransportPending || leaseLost}
+                      onClick={() => void setPresentationPausedRemote(!sessionRow.presentationPaused)}
+                      className="brutal-pressable border-[3px] border-foreground bg-background px-3 py-2 brutal-shadow-sm disabled:opacity-45"
                     >
-                      Code für diese Sitzung speichern
+                      {sessionRow.presentationPaused
+                        ? uiStrings.presenterResume
+                        : uiStrings.presenterPause}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={presenterTransportPending || leaseLost}
+                      onClick={() => void stopPresentationRemote()}
+                      className="brutal-pressable border-[3px] border-foreground bg-brutal-warn px-3 py-2 text-brutal-warn-fg brutal-shadow-sm disabled:opacity-45"
+                    >
+                      {uiStrings.presenterStop}
                     </button>
                   </div>
                 ) : null}
+                <div className="flex min-w-0 flex-1 flex-col gap-2 md:max-w-md md:flex-none">
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                    <button
+                      type="button"
+                      className="brutal-pressable w-fit text-left font-sans text-xs font-extrabold uppercase tracking-wide text-brutal-accent underline decoration-2 underline-offset-4"
+                      onClick={togglePresenterPanel}
+                    >
+                      {presenterOpen ? "Presenter-Modus ausblenden" : uiStrings.presenterMode}
+                    </button>
+                    <button
+                      type="button"
+                      className="brutal-pressable w-fit font-sans text-xs font-extrabold uppercase tracking-wide text-foreground/70 underline decoration-2 underline-offset-4"
+                      onClick={() => void logoutPresenter()}
+                    >
+                      {uiStrings.presenterLogout}
+                    </button>
+                  </div>
+                  {presenterOpen ? (
+                    <div className="flex flex-col gap-3 border-[3px] border-foreground bg-background p-3 brutal-shadow-sm">
+                      <label className="flex flex-col gap-1 font-sans text-xs font-extrabold uppercase tracking-wide">
+                        <span>{uiStrings.presenterKeyLabel}</span>
+                        <input
+                          type="password"
+                          autoComplete="off"
+                          className="cursor-text border-2 border-foreground bg-background px-3 py-2 font-medium"
+                          placeholder={uiStrings.presenterKeyPlaceholder}
+                          value={presenterKeyInput}
+                          onChange={(e) => setPresenterKeyInput(e.target.value)}
+                        />
+                      </label>
+                      <p className="font-sans text-[11px] font-semibold text-foreground/65">
+                        {uiStrings.presenterKeyStored}
+                      </p>
+                      <button
+                        type="button"
+                        className="brutal-pressable border-[3px] border-foreground bg-brutal-accent px-3 py-2 font-sans text-xs font-extrabold uppercase tracking-wide text-brutal-accent-fg brutal-shadow-sm"
+                        onClick={persistPresenterKey}
+                      >
+                        Code für diese Sitzung speichern
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
               </div>
-            </div>
+            ) : null}
           </div>
         ) : null}
       </header>

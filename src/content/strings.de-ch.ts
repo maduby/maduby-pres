@@ -9,7 +9,10 @@ export const uiStrings = {
     "Presenter: Pfeiltasten oder Leertaste. Home/Ende für Anfang/Ende. Publikum nutzt die Startseite (ohne /present).",
   studentHint:
     "Du siehst dieselbe Folie wie der Vortrag, sobald jemand live präsentiert. Selbst blättern? Tippe danach LIVE, um wieder mitzugehen.",
-  presenterViewBadge: "Presenter-Ansicht",
+  presenterViewBadge: "PRESENTER-VIEW",
+  presenterViewToggleAriaShow:
+    "Presenter-Leiste einblenden (Pause, Beenden, Presenter-Modus, Abmelden)",
+  presenterViewToggleAriaHide: "Presenter-Leiste ausblenden",
   presenterKeyLabel: "Presenter-Code",
   presenterKeyPlaceholder:
     "Vollständigen Wert von PRESENTER_SECRET einfügen (.env.local oder Vercel)",
