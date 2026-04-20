@@ -1,4 +1,7 @@
-import { ChevronLeft, ChevronRight, MessageCircle } from "lucide-react";
+"use client";
+
+import { useState } from "react";
+import { ChevronLeft, ChevronRight, KeyRound, MessageCircle } from "lucide-react";
 import { uiStrings } from "@/content/strings.de-ch";
 import { WaitingRoomDuckGame } from "@/components/deck/waiting-room-duck-game";
 import { cn } from "@/lib/utils";
@@ -9,6 +12,8 @@ interface PresentationWaitingRoomProps {
   onStartPresentation?: () => void;
   startPending?: boolean;
   startError?: string | null;
+  /** Called after a successful POST /api/visitor-unlock (cookie set). */
+  onVisitorUnlocked?: () => void;
 }
 
 /** Non-interactive replicas of header controls for the explainer (pointer-events none). */
@@ -102,8 +107,44 @@ export function PresentationWaitingRoom({
   onStartPresentation,
   startPending = false,
   startError = null,
+  onVisitorUnlocked,
 }: PresentationWaitingRoomProps) {
   const isPresenter = mode === "presenter";
+  const [visitorFormOpen, setVisitorFormOpen] = useState(false);
+  const [visitorPassword, setVisitorPassword] = useState("");
+  const [visitorPending, setVisitorPending] = useState(false);
+  const [visitorError, setVisitorError] = useState<string | null>(null);
+
+  const submitVisitorUnlock = async () => {
+    setVisitorError(null);
+    setVisitorPending(true);
+    try {
+      const res = await fetch("/api/visitor-unlock", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: visitorPassword }),
+      });
+      if (res.status === 503) {
+        setVisitorError(uiStrings.visitorPasswordConfigError);
+        return;
+      }
+      if (res.status === 401) {
+        setVisitorError(uiStrings.visitorPasswordError);
+        return;
+      }
+      if (!res.ok) {
+        setVisitorError(uiStrings.visitorPasswordError);
+        return;
+      }
+      setVisitorPassword("");
+      onVisitorUnlocked?.();
+    } catch {
+      setVisitorError(uiStrings.visitorPasswordNetworkError);
+    } finally {
+      setVisitorPending(false);
+    }
+  };
 
   return (
     <div
@@ -185,7 +226,54 @@ export function PresentationWaitingRoom({
               {uiStrings.preStartPresenterNote}
             </p>
           </div>
-        ) : null}
+        ) : (
+          <div className="mt-8 border-t-[3px] border-foreground pt-6">
+            <button
+              type="button"
+              onClick={() => {
+                setVisitorError(null);
+                setVisitorFormOpen((v) => !v);
+              }}
+              className="brutal-pressable inline-flex w-full items-center justify-center gap-2 border-[3px] border-foreground bg-background px-4 py-3 font-sans text-sm font-extrabold uppercase tracking-wide brutal-shadow-sm sm:w-auto"
+            >
+              <KeyRound className="size-4 shrink-0" strokeWidth={2.5} aria-hidden />
+              {uiStrings.visitorPasswordModeCta}
+            </button>
+            {visitorFormOpen ? (
+              <div className="mt-4 space-y-3 border-[3px] border-foreground bg-foreground/[0.04] p-4 brutal-shadow-sm sm:p-5">
+                <p className="font-sans text-[13px] font-semibold leading-snug text-foreground/85">
+                  {uiStrings.visitorPasswordModeHint}
+                </p>
+                <label className="flex flex-col gap-1.5 font-sans text-xs font-extrabold uppercase tracking-wide">
+                  <span>{uiStrings.visitorPasswordLabel}</span>
+                  <input
+                    type="password"
+                    autoComplete="current-password"
+                    className="cursor-text border-[3px] border-foreground bg-background px-3 py-2.5 font-medium normal-case"
+                    value={visitorPassword}
+                    onChange={(e) => setVisitorPassword(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") void submitVisitorUnlock();
+                    }}
+                  />
+                </label>
+                {visitorError ? (
+                  <p className="font-sans text-sm font-bold text-red-700 dark:text-red-400" role="alert">
+                    {visitorError}
+                  </p>
+                ) : null}
+                <button
+                  type="button"
+                  disabled={visitorPending || visitorPassword.length === 0}
+                  onClick={() => void submitVisitorUnlock()}
+                  className="brutal-pressable border-[3px] border-foreground bg-brutal-accent px-4 py-2.5 font-sans text-xs font-extrabold uppercase tracking-wide text-brutal-accent-fg brutal-shadow-sm disabled:opacity-45"
+                >
+                  {visitorPending ? uiStrings.visitorPasswordSubmitting : uiStrings.visitorPasswordSubmit}
+                </button>
+              </div>
+            ) : null}
+          </div>
+        )}
       </div>
     </div>
   );

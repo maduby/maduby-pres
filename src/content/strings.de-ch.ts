@@ -92,6 +92,8 @@ export const uiStrings = {
     "Live-Resultat für alle sichtbar. Deine Stimme: einmal wählen — danach siehst du nur noch die laufenden Ergebnisse.",
   pollAudienceThanks: "Danke — deine Stimme ist gezählt.",
   pollAudienceClosed: "Die Umfrage ist beendet — finales Resultat:",
+  pollAudiencePasswordMode:
+    "Im Passwort-Modus sind Live-Umfragen deaktiviert — abstimmen geht erst, wenn die Präsentation offiziell live ist.",
   preStartTitle: "Präsentation startet in Kürze…",
   preStartSyncing: "Mit dem Live-Server verbinden …",
   preStartJoinLead: "Jetzt mitmachen",
@@ -125,6 +127,19 @@ export const uiStrings = {
   preStartPresenterNote:
     "Nur ein Presenter-Tab kann die Folien steuern. Nach dem Start läuft ein Timer ab diesem Moment.",
   preStartHeaderBadge: "Wartezimmer",
+  preStartHeaderPreviewBadge: "Vorschau (Passwort)",
+  visitorPasswordModeCta: "Passwort-Modus",
+  visitorPasswordModeHint:
+    "Mit dem Veranstaltungs-Passwort kannst du die Folien schon durchblättern, bevor die Präsentation für alle startet.",
+  visitorPasswordLabel: "Passwort",
+  visitorPasswordSubmit: "Folien entsperren",
+  visitorPasswordSubmitting: "Wird geprüft …",
+  visitorPasswordError: "Passwort ungültig.",
+  visitorPasswordConfigError: "Passwort-Modus ist auf dem Server nicht eingerichtet.",
+  visitorPasswordNetworkError: "Netzwerkfehler — bitte erneut versuchen.",
+  visitorPreviewEnd: "Vorschau beenden",
+  visitorLiveFollowDisabledHint:
+    "Live-Follow ist erst verfügbar, sobald die Präsentation gestartet wurde.",
   preStartLeaseError:
     "Steuerung nicht verfügbar — möglicherweise ist ein anderer Presenter aktiv. Tab schliessen oder ~90s warten.",
   preStartGenericError: "Start fehlgeschlagen — bitte erneut versuchen.",

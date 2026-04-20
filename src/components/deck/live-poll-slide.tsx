@@ -69,6 +69,7 @@ export function LivePollSlideContent({
   const {
     supabaseReady,
     isPresenterView,
+    audiencePollDisabled,
     snapshot,
     audienceHasVoted,
     registerPollSlide,
@@ -176,6 +177,22 @@ export function LivePollSlideContent({
             <p className="font-sans text-sm font-semibold text-foreground/70">
               {uiStrings.pollAudienceOffline}
             </p>
+          ) : audiencePollDisabled && !snap ? (
+            <div className="space-y-4">
+              <p className="font-sans text-sm font-semibold text-foreground/85">
+                {uiStrings.pollAudiencePasswordMode}
+              </p>
+              <ul className="grid gap-2 font-sans text-sm font-bold uppercase tracking-wide text-foreground/90 sm:grid-cols-2 sm:gap-3 lg:gap-4 lg:text-base">
+                {slide.options.map((o) => (
+                  <li
+                    key={o}
+                    className="border-2 border-foreground bg-background px-3 py-2 opacity-80 brutal-shadow-sm sm:px-4 sm:py-3"
+                  >
+                    {o}
+                  </li>
+                ))}
+              </ul>
+            </div>
           ) : !snap ? (
             <p className="font-sans text-sm font-semibold text-foreground/80">
               {uiStrings.pollAudienceWaiting}
@@ -184,7 +201,11 @@ export function LivePollSlideContent({
             <>
               <PollBars options={snap.options} tallies={snap.tallies} status="live" />
               <div className="border-t-[3px] border-foreground pt-5">
-                {audienceHasVoted ? (
+                {audiencePollDisabled ? (
+                  <p className="border-[3px] border-foreground bg-foreground/[0.06] px-4 py-3 font-sans text-sm font-extrabold uppercase tracking-wide text-foreground brutal-shadow-sm">
+                    {uiStrings.pollAudiencePasswordMode}
+                  </p>
+                ) : audienceHasVoted ? (
                   <p className="border-[3px] border-foreground bg-brutal-accent/15 px-4 py-3 font-sans text-sm font-extrabold uppercase tracking-wide text-foreground brutal-shadow-sm">
                     {uiStrings.pollAudienceThanks}
                   </p>

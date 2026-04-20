@@ -42,6 +42,7 @@ interface LivePollContextValue {
   supabaseReady: boolean;
   slideIndex: number;
   isPresenterView: boolean;
+  audiencePollDisabled: boolean;
   snapshot: LivePollSnapshot | null;
   audienceHasVoted: boolean;
   registerPollSlide: (def: PollSlideDefinition | null) => void;
@@ -84,6 +85,7 @@ export function LivePollProvider({
   supabaseAnon,
   slideIndex,
   isPresenterView,
+  audiencePollDisabled = false,
 }: {
   children: React.ReactNode;
   sessionId: string | undefined;
@@ -92,6 +94,8 @@ export function LivePollProvider({
   supabaseAnon: string | undefined;
   slideIndex: number;
   isPresenterView: boolean;
+  /** Audience: block voting / live poll UX while browsing in password preview before go-live. */
+  audiencePollDisabled?: boolean;
 }) {
   const [snapshot, setSnapshot] = useState<LivePollSnapshot | null>(null);
   const [audienceHasVoted, setAudienceHasVoted] = useState(false);
@@ -380,7 +384,7 @@ export function LivePollProvider({
 
   const submitVote = useCallback(
     (optionIndex: number) => {
-      if (isPresenterView || !supabaseReady) return;
+      if (isPresenterView || !supabaseReady || audiencePollDisabled) return;
       const snap = snapshot;
       if (!snap || snap.status !== "live") return;
       if (snap.slideIndex !== slideIndexRef.current) return;
@@ -411,7 +415,14 @@ export function LivePollProvider({
         voterId,
       });
     },
-    [audienceHasVoted, isPresenterView, sendBroadcastReliable, snapshot, supabaseReady],
+    [
+      audienceHasVoted,
+      audiencePollDisabled,
+      isPresenterView,
+      sendBroadcastReliable,
+      snapshot,
+      supabaseReady,
+    ],
   );
 
   const value = useMemo(
@@ -419,6 +430,7 @@ export function LivePollProvider({
       supabaseReady: Boolean(supabaseReady),
       slideIndex,
       isPresenterView,
+      audiencePollDisabled,
       snapshot,
       audienceHasVoted,
       registerPollSlide,
@@ -430,6 +442,7 @@ export function LivePollProvider({
       supabaseReady,
       slideIndex,
       isPresenterView,
+      audiencePollDisabled,
       snapshot,
       audienceHasVoted,
       registerPollSlide,

@@ -133,9 +133,17 @@ export function DeckShell({
     () => !isPresenterView || hasSlideParam,
   );
   const openedPresentationOnceRef = useRef(false);
+  const [visitorPreviewUnlocked, setVisitorPreviewUnlocked] = useState(false);
 
-  const presentationOpen = !supabaseReady || Boolean(sessionRow.presentationStartedAt);
+  const livePresentationStarted =
+    supabaseReady && Boolean(sessionRow.presentationStartedAt);
+  const deckNavUnlocked =
+    !supabaseReady ||
+    livePresentationStarted ||
+    (!isPresenterView && visitorPreviewUnlocked);
   const presentationPaused = sessionRow.presentationPaused;
+  const audiencePollPreviewLocked =
+    !isPresenterView && visitorPreviewUnlocked && !livePresentationStarted;
 
   const index = useMemo(() => {
     const raw = searchParams.get("s");
@@ -207,6 +215,37 @@ export function DeckShell({
     },
     [pathname, router, searchParams],
   );
+
+  const visitorPreviewLogout = useCallback(async () => {
+    try {
+      await fetch("/api/visitor-unlock/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+    } catch {
+      /* ignore */
+    }
+    startTransition(() => setVisitorPreviewUnlocked(false));
+    replaceUrl(0);
+  }, [replaceUrl]);
+
+  useEffect(() => {
+    if (isPresenterView || typeof window === "undefined") return;
+    if (!sessionId) return;
+    let cancelled = false;
+    void fetch("/api/visitor-unlock/status", { credentials: "include" })
+      .then((r) => r.json() as Promise<{ unlocked?: boolean }>)
+      .then((body) => {
+        if (cancelled) return;
+        if (body.unlocked) {
+          startTransition(() => setVisitorPreviewUnlocked(true));
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [isPresenterView, sessionId]);
 
   const go = useCallback(
     (next: number) => {
@@ -391,14 +430,14 @@ export function DeckShell({
   }, [sessionId, supabaseAnon, supabaseReady, supabaseUrl]);
 
   useEffect(() => {
-    if (!presentationOpen && sessionRow.loaded && index !== 0) {
+    if (!deckNavUnlocked && sessionRow.loaded && index !== 0) {
       replaceUrl(0);
     }
-  }, [presentationOpen, sessionRow.loaded, index, replaceUrl]);
+  }, [deckNavUnlocked, sessionRow.loaded, index, replaceUrl]);
 
   useEffect(() => {
     if (isPresenterView || !sessionRow.loaded) return;
-    if (!presentationOpen) {
+    if (!livePresentationStarted) {
       openedPresentationOnceRef.current = false;
       startTransition(() => {
         setFollowLive(false);
@@ -411,7 +450,7 @@ export function DeckShell({
         setFollowLive(true);
       });
     }
-  }, [isPresenterView, presentationOpen, sessionRow.loaded]);
+  }, [isPresenterView, livePresentationStarted, sessionRow.loaded]);
 
   useEffect(() => {
     if (!isPresenterView) {
@@ -423,7 +462,7 @@ export function DeckShell({
 
     if (
       hasSlideParam ||
-      !presentationOpen ||
+      !livePresentationStarted ||
       !supabaseReady ||
       !sessionId ||
       !supabaseUrl ||
@@ -482,8 +521,8 @@ export function DeckShell({
   }, [
     hasSlideParam,
     isPresenterView,
+    livePresentationStarted,
     maxIndex,
-    presentationOpen,
     replaceUrl,
     sessionId,
     supabaseAnon,
@@ -589,7 +628,7 @@ export function DeckShell({
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
         return;
       }
-      if (!presentationOpen) {
+      if (!deckNavUnlocked) {
         return;
       }
       if (!isPresenterView && followLive) {
@@ -611,7 +650,7 @@ export function DeckShell({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [followLive, go, index, isPresenterView, maxIndex, presentationOpen]);
+  }, [deckNavUnlocked, followLive, go, index, isPresenterView, maxIndex]);
 
   useEffect(() => {
     return () => {
@@ -766,11 +805,11 @@ export function DeckShell({
 
   const navigateManual = useCallback(
     (next: number) => {
-      if (!presentationOpen) return;
+      if (!deckNavUnlocked) return;
       if (!isPresenterView) setFollowLive(false);
       go(next);
     },
-    [go, isPresenterView, presentationOpen],
+    [deckNavUnlocked, go, isPresenterView],
   );
 
   const startPresentation = useCallback(async () => {
@@ -844,7 +883,7 @@ export function DeckShell({
   }, [presenterSecret, sessionId]);
 
   useEffect(() => {
-    if (!followLive || !supabaseReady || !presentationOpen) {
+    if (!followLive || !supabaseReady || !livePresentationStarted) {
       if (channelRef.current) {
         void channelRef.current.unsubscribe();
         channelRef.current = null;
@@ -859,7 +898,7 @@ export function DeckShell({
     const supabase = createClient(supabaseUrl!, supabaseAnon!);
 
     const applyRemote = (slideIndex: number | null | undefined) => {
-      if (!presentationOpen || presentationPaused) return;
+      if (!livePresentationStarted || presentationPaused) return;
       if (slideIndex === null || slideIndex === undefined) return;
       if (!Number.isFinite(slideIndex)) return;
       const clamped = clampIndex(Math.floor(slideIndex), maxIndex);
@@ -916,8 +955,8 @@ export function DeckShell({
     };
   }, [
     followLive,
+    livePresentationStarted,
     maxIndex,
-    presentationOpen,
     presentationPaused,
     replaceUrl,
     sessionId,
@@ -929,7 +968,7 @@ export function DeckShell({
   useEffect(() => {
     if (
       !isPresenterView ||
-      !presentationOpen ||
+      !livePresentationStarted ||
       presentationPaused ||
       followLive ||
       !presenterResumeReady ||
@@ -942,7 +981,7 @@ export function DeckShell({
     followLive,
     index,
     isPresenterView,
-    presentationOpen,
+    livePresentationStarted,
     presentationPaused,
     presenterResumeReady,
     sessionId,
@@ -1154,12 +1193,14 @@ export function DeckShell({
         <div className="mx-auto flex max-w-none flex-col gap-3 px-4 py-3 md:flex-row md:items-center md:justify-between">
           <div className="flex flex-wrap items-center gap-3 font-sans text-sm font-extrabold uppercase tracking-wide">
             <div className="flex min-w-0 flex-col gap-0.5">
-              <span className={presentationOpen ? undefined : "normal-case"}>
-                {presentationOpen
-                  ? `${uiStrings.slideLabel} ${index + 1} ${uiStrings.of} ${slides.length}`
+              <span className={deckNavUnlocked ? undefined : "normal-case"}>
+                {deckNavUnlocked
+                  ? visitorPreviewUnlocked && !livePresentationStarted
+                    ? `${uiStrings.preStartHeaderPreviewBadge} · ${uiStrings.slideLabel} ${index + 1} ${uiStrings.of} ${slides.length}`
+                    : `${uiStrings.slideLabel} ${index + 1} ${uiStrings.of} ${slides.length}`
                   : uiStrings.preStartHeaderBadge}
               </span>
-              {presentationOpen && elapsedLabel ? (
+              {livePresentationStarted && elapsedLabel ? (
                 <span
                   className="font-mono text-[11px] font-semibold tabular-nums tracking-tight text-foreground/80 normal-case"
                   title={uiStrings.presentationTimerLabel}
@@ -1173,12 +1214,12 @@ export function DeckShell({
               role="progressbar"
               aria-valuemin={1}
               aria-valuemax={slides.length}
-              aria-valuenow={presentationOpen ? index + 1 : 0}
+              aria-valuenow={deckNavUnlocked ? index + 1 : 0}
             >
               <div
                 className="h-full bg-brutal-accent transition-[width] duration-300"
                 style={{
-                  width: `${((presentationOpen ? index + 1 : 0) / slides.length) * 100}%`,
+                  width: `${((deckNavUnlocked ? index + 1 : 0) / slides.length) * 100}%`,
                 }}
               />
             </div>
@@ -1216,7 +1257,7 @@ export function DeckShell({
               type="button"
               className="brutal-pressable inline-flex size-10 items-center justify-center rounded-sm border-[3px] border-foreground bg-background font-sans text-xs font-extrabold uppercase tracking-wide brutal-shadow-sm disabled:opacity-40"
               onClick={() => navigateManual(index - 1)}
-              disabled={!presentationOpen || index === 0}
+              disabled={!deckNavUnlocked || index === 0}
               aria-label={uiStrings.prev}
             >
               <ChevronLeft className="size-4 shrink-0" strokeWidth={2.5} aria-hidden />
@@ -1225,7 +1266,7 @@ export function DeckShell({
               type="button"
               className="brutal-pressable inline-flex size-10 items-center justify-center rounded-sm border-[3px] border-foreground bg-background font-sans text-xs font-extrabold uppercase tracking-wide brutal-shadow-sm disabled:opacity-40"
               onClick={() => navigateManual(index + 1)}
-              disabled={!presentationOpen || index === maxIndex}
+              disabled={!deckNavUnlocked || index === maxIndex}
               aria-label={uiStrings.next}
             >
               <ChevronRight className="size-4 shrink-0" strokeWidth={2.5} aria-hidden />
@@ -1236,10 +1277,22 @@ export function DeckShell({
                   type="button"
                   onClick={() => setFollowLive((v) => !v)}
                   aria-pressed={followLive}
-                  disabled={!presentationOpen}
-                  title={followLive ? uiStrings.liveFollowingHint : uiStrings.liveResumeHint}
+                  disabled={!deckNavUnlocked || !livePresentationStarted}
+                  title={
+                    !deckNavUnlocked
+                      ? undefined
+                      : !livePresentationStarted
+                        ? uiStrings.visitorLiveFollowDisabledHint
+                        : followLive
+                          ? uiStrings.liveFollowingHint
+                          : uiStrings.liveResumeHint
+                  }
                   aria-label={
-                    followLive ? uiStrings.liveToggleTurnOff : uiStrings.liveToggleTurnOn
+                    !livePresentationStarted && deckNavUnlocked
+                      ? uiStrings.visitorLiveFollowDisabledHint
+                      : followLive
+                        ? uiStrings.liveToggleTurnOff
+                        : uiStrings.liveToggleTurnOn
                   }
                   className={cn(
                     "brutal-pressable inline-flex h-10 shrink-0 items-center justify-center rounded-sm border-[3px] border-foreground px-3 font-sans text-xs font-extrabold uppercase tracking-wide brutal-shadow-sm disabled:opacity-40",
@@ -1249,6 +1302,17 @@ export function DeckShell({
                   )}
                 >
                   {uiStrings.synced}
+                </button>
+              ) : null}
+              {!isPresenterView &&
+              visitorPreviewUnlocked &&
+              !livePresentationStarted ? (
+                <button
+                  type="button"
+                  onClick={() => void visitorPreviewLogout()}
+                  className="brutal-pressable inline-flex h-10 shrink-0 items-center justify-center rounded-sm border-[3px] border-foreground bg-background px-2.5 font-sans text-[10px] font-extrabold uppercase tracking-wide brutal-shadow-sm min-[380px]:text-[11px]"
+                >
+                  {uiStrings.visitorPreviewEnd}
                 </button>
               ) : null}
               {supabaseReady ? (
@@ -1310,7 +1374,7 @@ export function DeckShell({
             ) : null}
             {presenterQuickControlsOpen ? (
               <div className="mx-auto flex max-w-none flex-col gap-3 md:flex-row md:flex-wrap md:items-start md:justify-between md:gap-4">
-                {presentationOpen && supabaseReady ? (
+                {livePresentationStarted && supabaseReady ? (
                   <div
                     id="presenter-quick-controls"
                     className="flex flex-wrap items-center gap-2 font-sans text-xs font-extrabold uppercase tracking-wide"
@@ -1384,7 +1448,7 @@ export function DeckShell({
         ) : null}
       </header>
 
-      {!isPresenterView && presentationOpen && presentationPaused ? (
+      {!isPresenterView && livePresentationStarted && presentationPaused ? (
         <div
           role="status"
           className="shrink-0 border-b-[3px] border-foreground bg-brutal-warn/35 px-4 py-2 text-center font-sans text-xs font-extrabold uppercase tracking-wide text-foreground"
@@ -1404,9 +1468,10 @@ export function DeckShell({
                 supabaseAnon={supabaseAnon}
                 slideIndex={index}
                 isPresenterView={isPresenterView}
+                audiencePollDisabled={audiencePollPreviewLocked}
               >
                 <div className="flex min-h-0 flex-1 flex-col">
-                  {presentationOpen ? (
+                  {deckNavUnlocked ? (
                     <DeckSlideSwiper
                       slides={slides}
                       activeIndex={index}
@@ -1421,6 +1486,9 @@ export function DeckShell({
                       }
                       startPending={startPresentationPending}
                       startError={startPresentationError}
+                      onVisitorUnlocked={() =>
+                        startTransition(() => setVisitorPreviewUnlocked(true))
+                      }
                     />
                   )}
                 </div>
